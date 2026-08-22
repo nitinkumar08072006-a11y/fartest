@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const fs = require('fs');
 const XLSX = require('xlsx');
 
 const app = express();
@@ -9,23 +10,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static assets from both root directory and /ux folder if present
+// Serve static frontend files
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'ux')));
 
-// Master Backend Officer Password
+const DB_FILE = path.join(__dirname, 'db.json');
 const ADMIN_PASSWORD = "admin@kisan2026";
 
-// Government MSP Price configuration per kg
-const PRICE_CONFIG = {
-    "Wheat": 25,
-    "Rice": 32,
-    "Cotton": 65,
-    "Mustard": 55,
-    "Soybean": 48
-};
-
-// 4-stage payment verification pipeline
 const PAYMENT_STAGES = [
     "Verification from District Nodal Officer",
     "Verification from Ministry",
@@ -33,27 +24,56 @@ const PAYMENT_STAGES = [
     "Money Transferred"
 ];
 
-let farmers = [];
-let bookings = [];
-let feedbacks = [];
+// Initialize persistent DB if not present
+function loadDB() {
+    try {
+        if (!fs.existsSync(DB_FILE)) {
+            const initialData = {
+                farmers: [],
+                bookings: [],
+                feedbacks: [],
+                prices: {
+                    "Wheat": 25,
+                    "Rice": 32,
+                    "Cotton": 65,
+                    "Mustard": 55,
+                    "Soybean": 48
+                },
+                centerCapacity: {
+                    "District Mandi Center A": 20,
+                    "District Mandi Center B": 15,
+                    "District Mandi Center C": 25
+                },
+                activeTokens: {}
+            };
+            fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
+            return initialData;
+        }
+        return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+    } catch (e) {
+        return { farmers: [], bookings: [], feedbacks: [], prices: {}, centerCapacity: {}, activeTokens: {} };
+    }
+}
 
-let centerCapacity = {
-    "District Mandi Center A": 20,
-    "District Mandi Center B": 15,
-    "District Mandi Center C": 25
-};
-
-let activeTokens = {};
+function saveDB(data) {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+}
 
 function generateRegNo() {
     return 'REG-' + Math.floor(100000 + Math.random() * 900000);
 }
 
-// Serve index.html on root
+// Serve root
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'), (err) => {
         if (err) res.sendFile(path.join(__dirname, 'ux', 'index.html'));
     });
+});
+
+// Fetch current MSP prices
+app.get('/api/prices', (req, res) => {
+    const db = loadDB();
+    res.json(db.prices);
 });
 
 // 1. Farmer Registration
@@ -64,17 +84,24 @@ app.post('/api/register', (req, res) => {
             return res.status(400).json({ success: false, error: 'Name, Mobile, and Password are required.' });
         }
 
+        const db = loadDB();
+        const existing = db.farmers.find(f => f.mobile === mobile.trim());
+        if (existing) {
+            return res.status(400).json({ success: false, error: `Mobile already registered with ID: ${existing.regNo}` });
+        }
+
         const regNo = generateRegNo();
         const newFarmer = {
             regNo,
             password,
             name,
-            mobile,
-            aadhar: aadhar || '',
-            createdAt: new Date()
+            mobile: mobile.trim(),
+            aadhar: aadhar ? aadhar.trim() : '',
+            createdAt: new Date().toISOString()
         };
 
-        farmers.push(newFarmer);
+        db.farmers.push(newFarmer);
+        saveDB(db);
         res.json({ success: true, regNo, message: 'Registration complete' });
     } catch (err) {
         res.status(500).json({ success: false, error: 'Registration error' });
@@ -85,13 +112,14 @@ app.post('/api/register', (req, res) => {
 app.post('/api/login', (req, res) => {
     try {
         const { regNo, password } = req.body;
-        const farmer = farmers.find(f => f.regNo.trim().toUpperCase() === (regNo || '').trim().toUpperCase() && f.password === password);
+        const db = loadDB();
+        const farmer = db.farmers.find(f => f.regNo.trim().toUpperCase() === (regNo || '').trim().toUpperCase() && f.password === password);
 
         if (!farmer) {
             return res.status(401).json({ success: false, error: 'Invalid Registration Number or Password' });
         }
 
-        const farmerBookings = bookings.filter(b => b.regNo === farmer.regNo);
+        const farmerBookings = db.bookings.filter(b => b.regNo === farmer.regNo);
         res.json({ success: true, farmer, bookings: farmerBookings });
     } catch (err) {
         res.status(500).json({ success: false, error: 'Login error' });
@@ -101,12 +129,13 @@ app.post('/api/login', (req, res) => {
 // 3. Slot Availability Check
 app.get('/api/slots/availability', (req, res) => {
     const { center, date, session } = req.query;
-    const maxCap = centerCapacity[center] || 20;
-    const bookedCount = bookings.filter(b => b.center === center && b.slotDate === date && b.session === session).length;
+    const db = loadDB();
+    const maxCap = db.centerCapacity[center] || 20;
+    const bookedCount = db.bookings.filter(b => b.center === center && b.slotDate === date && b.session === session).length;
     const available = Math.max(0, maxCap - bookedCount);
 
     const tokenKey = `${center}_${date}_${session}`;
-    const currentServedToken = activeTokens[tokenKey] || 0;
+    const currentServedToken = db.activeTokens[tokenKey] || 0;
 
     res.json({
         center,
@@ -119,15 +148,25 @@ app.get('/api/slots/availability', (req, res) => {
     });
 });
 
-// 4. Book Slot & Generate Token
+// 4. Book Slot (Restricted to 1 Active Token per farmer)
 app.post('/api/slots/book', (req, res) => {
     try {
         const { regNo, crop, quantityKg, center, slotDate, session } = req.body;
-        const farmer = farmers.find(f => f.regNo === regNo);
+        const db = loadDB();
+        const farmer = db.farmers.find(f => f.regNo === regNo);
         if (!farmer) return res.status(404).json({ success: false, error: 'Farmer profile not found' });
 
-        const maxCap = centerCapacity[center] || 20;
-        const sessionBookings = bookings.filter(b => b.center === center && b.slotDate === slotDate && b.session === session);
+        // Check if farmer already has an active pending token (steps 0, 1, or 2)
+        const hasActiveBooking = db.bookings.some(b => b.regNo === regNo && b.paymentStep < 3);
+        if (hasActiveBooking) {
+            return res.status(400).json({
+                success: false,
+                error: 'You already have an active Mandi Token in progress! You cannot generate another until your current payout is completed.'
+            });
+        }
+
+        const maxCap = db.centerCapacity[center] || 20;
+        const sessionBookings = db.bookings.filter(b => b.center === center && b.slotDate === slotDate && b.session === session);
 
         if (sessionBookings.length >= maxCap) {
             return res.status(400).json({ success: false, error: 'Session is full. Choose another session or date.' });
@@ -135,7 +174,7 @@ app.post('/api/slots/book', (req, res) => {
 
         const tokenSeq = sessionBookings.length + 1;
         const tokenNumber = `TKN-${String(tokenSeq).padStart(3, '0')}`;
-        const ratePerKg = PRICE_CONFIG[crop] || 20;
+        const ratePerKg = db.prices[crop] || 25;
         const totalAmount = ratePerKg * Number(quantityKg || 1);
 
         const newBooking = {
@@ -157,7 +196,8 @@ app.post('/api/slots/book', (req, res) => {
             bookedAt: new Date().toISOString()
         };
 
-        bookings.push(newBooking);
+        db.bookings.push(newBooking);
+        saveDB(db);
         res.json({ success: true, booking: newBooking });
     } catch (err) {
         res.status(500).json({ success: false, error: 'Failed to book slot' });
@@ -176,7 +216,8 @@ app.post('/api/admin/login', (req, res) => {
 // 6. Admin Records
 app.get('/api/admin/records', (req, res) => {
     const { date, crop, center } = req.query;
-    let filtered = [...bookings];
+    const db = loadDB();
+    let filtered = [...db.bookings];
 
     if (date) filtered = filtered.filter(b => b.slotDate === date);
     if (crop) filtered = filtered.filter(b => b.crop.toLowerCase().includes(crop.toLowerCase()));
@@ -188,38 +229,57 @@ app.get('/api/admin/records', (req, res) => {
 // 7. Admin Update Payment Step
 app.post('/api/admin/update-payment', (req, res) => {
     const { bookingId, stepIndex } = req.body;
-    const booking = bookings.find(b => b.bookingId === bookingId);
+    const db = loadDB();
+    const booking = db.bookings.find(b => b.bookingId === bookingId);
     if (!booking) return res.status(404).json({ success: false, error: 'Booking not found' });
 
     const idx = Number(stepIndex);
     booking.paymentStep = idx;
     booking.status = PAYMENT_STAGES[idx];
 
+    saveDB(db);
     res.json({ success: true, booking });
 });
 
-// 8. Admin Update Capacity
+// 8. Admin Update MSP Price
+app.post('/api/admin/update-price', (req, res) => {
+    const { crop, price } = req.body;
+    const db = loadDB();
+    if (crop && price) {
+        db.prices[crop] = Number(price);
+        saveDB(db);
+        return res.json({ success: true, prices: db.prices });
+    }
+    res.status(400).json({ success: false, error: 'Invalid crop or price input' });
+});
+
+// 9. Admin Update Capacity
 app.post('/api/admin/update-capacity', (req, res) => {
     const { center, capacity } = req.body;
+    const db = loadDB();
     if (center && capacity) {
-        centerCapacity[center] = Number(capacity);
-        return res.json({ success: true, centerCapacity });
+        db.centerCapacity[center] = Number(capacity);
+        saveDB(db);
+        return res.json({ success: true, centerCapacity: db.centerCapacity });
     }
     res.status(400).json({ success: false, error: 'Invalid capacity' });
 });
 
-// 9. Admin Update Served Token
+// 10. Admin Update Served Token
 app.post('/api/admin/update-token-progress', (req, res) => {
     const { center, date, session, currentTokenSeq } = req.body;
+    const db = loadDB();
     const key = `${center}_${date}_${session}`;
-    activeTokens[key] = Number(currentTokenSeq);
-    res.json({ success: true, currentServedToken: activeTokens[key] });
+    db.activeTokens[key] = Number(currentTokenSeq);
+    saveDB(db);
+    res.json({ success: true, currentServedToken: db.activeTokens[key] });
 });
 
-// 10. Admin Export Excel
+// 11. Admin Export to Excel
 app.get('/api/admin/export-excel', (req, res) => {
     try {
-        const exportData = bookings.map(item => ({
+        const db = loadDB();
+        const exportData = db.bookings.map(item => ({
             "Booking ID": item.bookingId,
             "Token No": item.tokenNumber,
             "Reg No": item.regNo,
@@ -248,17 +308,13 @@ app.get('/api/admin/export-excel', (req, res) => {
     }
 });
 
-// 11. Feedback
+// 12. Feedback
 app.post('/api/feedback', (req, res) => {
     const { name, mobile, message } = req.body;
-    feedbacks.push({ name, mobile, message, date: new Date() });
+    const db = loadDB();
+    db.feedbacks.push({ name, mobile, message, date: new Date().toISOString() });
+    saveDB(db);
     res.json({ success: true, message: 'Feedback submitted successfully' });
-});
-
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'), (err) => {
-        if (err) res.sendFile(path.join(__dirname, 'ux', 'index.html'));
-    });
 });
 
 const PORT = process.env.PORT || 3000;
