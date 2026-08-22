@@ -1,880 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KisanSetu - Smart Mandi Procurement Portal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-</head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen relative" x-data="kisanSetuApp()">
-
-  <!-- Top Navigation Bar -->
-  <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
-      <div class="flex items-center space-x-3">
-        <i class="fa-solid fa-wheat-awn text-2xl text-amber-400"></i>
-        <div>
-          <h1 class="font-bold text-lg leading-tight" x-text="t('app_title')"></h1>
-          <p class="text-xs text-emerald-200">Dept. of Consumer Affairs (DoCA) | SIH PS #26032</p>
-        </div>
-      </div>
-      
-      <div class="flex items-center space-x-3">
-        <!-- Language Switcher -->
-        <div class="flex items-center space-x-1 bg-emerald-900 px-2 py-1 rounded-lg text-xs">
-          <i class="fa-solid fa-globe text-emerald-300 mr-1"></i>
-          <button @click="lang = 'en'" :class="lang === 'en' ? 'font-bold underline text-amber-400' : 'text-slate-300'">EN</button>
-          <span>|</span>
-          <button @click="lang = 'hi'" :class="lang === 'hi' ? 'font-bold underline text-amber-400' : 'text-slate-300'">हिन्दी</button>
-          <span>|</span>
-          <button @click="lang = 'pa'" :class="lang === 'pa' ? 'font-bold underline text-amber-400' : 'text-slate-300'">ਪੰਜਾਬੀ</button>
-        </div>
-
-        <!-- Navigation Tabs -->
-        <nav class="flex items-center space-x-1 bg-emerald-900 p-1 rounded-lg text-xs">
-          <button @click="currentTab = 'portal'" :class="currentTab === 'portal' ? 'bg-emerald-600 font-semibold text-white' : 'text-emerald-200'" class="px-2.5 py-1.5 rounded transition" x-text="t('nav_portal')"></button>
-          <button @click="currentTab = 'contact'" :class="currentTab === 'contact' ? 'bg-emerald-600 font-semibold text-white' : 'text-emerald-200'" class="px-2.5 py-1.5 rounded transition" x-text="t('nav_contact')"></button>
-          <button @click="openAdminModal()" :class="currentTab === 'admin' ? 'bg-amber-600 font-bold text-white' : 'text-amber-300 hover:text-white'" class="px-2.5 py-1.5 rounded transition flex items-center">
-            <i class="fa-solid fa-lock text-[10px] mr-1"></i> <span x-text="t('nav_admin')"></span>
-          </button>
-        </nav>
-      </div>
-    </div>
-  </header>
-
-  <main class="max-w-7xl mx-auto p-4 sm:p-6 mb-20">
-
-    <!-- ================= FARMER PORTAL VIEW ================= -->
-    <div x-show="currentTab === 'portal'" class="space-y-6">
-      
-      <!-- Login Section -->
-      <div x-show="!isFarmerLoggedIn" class="max-w-md mx-auto bg-white rounded-xl shadow p-6 border border-slate-200 mt-6">
-        <div class="text-center mb-6">
-          <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
-            <i class="fa-solid fa-user-check"></i>
-          </div>
-          <h2 class="text-lg font-bold text-slate-800" x-text="t('farmer_login_title')"></h2>
-          <p class="text-xs text-slate-500" x-text="t('farmer_login_sub')"></p>
-        </div>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kisan Procurement Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f6; color: #333; }
+        .header { background: #1b5e20; color: white; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+        .header-title { display: flex; align-items: center; gap: 20px; }
+        .header img { width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; }
+        .container { max-width: 1000px; margin: 25px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab-btn { padding: 10px 20px; border: none; background: none; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { border-bottom: 3px solid #1b5e20; color: #1b5e20; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button.action-btn { background: #1b5e20; color: white; padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; }
         
-        <form @submit.prevent="loginFarmer()" class="space-y-4 text-xs sm:text-sm">
-          <div>
-            <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('kisan_id')"></label>
-            <input type="text" x-model="loginForm.id" required placeholder="e.g. KISAN-4491" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" />
-          </div>
-          <div>
-            <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('farmer_name')"></label>
-            <input type="text" x-model="loginForm.name" required placeholder="e.g. Harpreet Singh" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" />
-          </div>
-          <div>
-            <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('mobile_no')"></label>
-            <input type="tel" x-model="loginForm.phone" required placeholder="10-digit mobile" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" />
-          </div>
-          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg shadow transition" x-text="t('proceed_btn')"></button>
-        </form>
-      </div>
+        /* Payment Tracker */
+        .stepper { display: flex; justify-content: space-between; margin: 30px 0; }
+        .step { flex: 1; text-align: center; position: relative; font-size: 12px; }
+        .step .circle { width: 30px; height: 30px; border-radius: 50%; background: #ccc; color: white; line-height: 30px; margin: 0 auto 8px; font-weight: bold; }
+        .step.done .circle { background: #2e7d32; }
+        .step.active .circle { background: #f57c00; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f8f9fa; }
+    </style>
+</head>
+<body>
 
-      <!-- Logged In Farmer Dashboard -->
-      <div x-show="isFarmerLoggedIn" class="space-y-6">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 flex justify-between items-center">
-          <div>
-            <p class="text-xs text-slate-500" x-text="t('welcome_back')"></p>
-            <h2 class="text-base sm:text-lg font-bold text-slate-800" x-text="farmer.name + ' (' + farmer.id + ')'"></h2>
-          </div>
-          <button @click="logoutFarmer()" class="text-xs text-red-600 hover:underline font-semibold" x-text="t('logout')"></button>
+    <div class="header">
+        <div class="header-title">
+            <img src="modi.png" alt="PM Narendra Modi">
+            <div>
+                <h2>PM Kisan Procurement & Tracking Portal</h2>
+                <small>Government of India</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('register')">Farmer Sign Up</button>
+            <button class="tab-btn" onclick="switchTab('login')">Farmer Login</button>
+            <button class="tab-btn" onclick="switchTab('admin')">Admin / Backend Panel</button>
         </div>
 
-        <!-- Confirmed Token Card -->
-        <template x-if="activeFarmerBooking">
-          <div class="bg-emerald-50 border-2 border-emerald-500 rounded-xl p-5 shadow-sm">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <span class="bg-emerald-600 text-white text-xs px-2.5 py-1 rounded font-semibold uppercase" x-text="t('token_confirmed')"></span>
-                <h3 class="text-2xl font-black text-emerald-950 mt-2">Token #<span x-text="activeFarmerBooking.token"></span></h3>
-                <p class="text-sm text-slate-700 mt-1">
-                  <strong>Mandi:</strong> <span x-text="getCenterName(activeFarmerBooking.centerId)"></span> | 
-                  <strong>Date:</strong> <span x-text="formatDateLabel(activeFarmerBooking.date)"></span> (<span x-text="activeFarmerBooking.session"></span>)
-                </p>
-                <p class="text-xs text-slate-600 mt-1">
-                  <strong>Crop:</strong> <span x-text="activeFarmerBooking.crop"></span> | 
-                  <strong>Weight:</strong> <span x-text="activeFarmerBooking.weight"></span> Quintals
-                </p>
-              </div>
+        <!-- Registration View -->
+        <div id="register-view" class="view active">
+            <h3>Farmer Slot & Crop Registration</h3>
+            <div class="form-group"><label>Farmer Name</label><input type="text" id="reg-name"></div>
+            <div class="form-group"><label>Mobile</label><input type="text" id="reg-mobile"></div>
+            <div class="form-group"><label>Crop</label>
+                <select id="reg-crop">
+                    <option value="Wheat">Wheat (₹25/kg)</option>
+                    <option value="Rice">Rice (₹32/kg)</option>
+                    <option value="Cotton">Cotton (₹65/kg)</option>
+                    <option value="Mustard">Mustard (₹55/kg)</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Total Quantity (in Kg)</label><input type="number" id="reg-qty"></div>
+            <div class="form-group"><label>Procurement Center</label>
+                <select id="reg-center">
+                    <option value="North Mandi Center">North Mandi Center</option>
+                    <option value="South Mandi Center">South Mandi Center</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Slot Date</label><input type="date" id="reg-date"></div>
+            <div class="form-group"><label>Set Account Password</label><input type="password" id="reg-pwd"></div>
+            <button class="action-btn" onclick="registerFarmer()">Register & Generate Reg No</button>
+        </div>
 
-              <!-- Live Queue Meter -->
-              <div class="bg-white p-4 rounded-lg border border-emerald-200 text-center w-full md:w-64">
-                <p class="text-xs text-slate-500 uppercase font-bold" x-text="t('live_counter')"></p>
-                <div class="text-2xl font-black text-emerald-700 my-1">
-                  Token #<span x-text="getCurrentServing(activeFarmerBooking.centerId, activeFarmerBooking.date, activeFarmerBooking.session)"></span>
+        <!-- Login View -->
+        <div id="login-view" class="view">
+            <h3>Farmer Sign In</h3>
+            <div class="form-group"><label>Registration Number</label><input type="text" id="login-reg"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="login-pwd"></div>
+            <button class="action-btn" onclick="loginFarmer()">Sign In</button>
+
+            <div id="farmer-dashboard" style="display:none; margin-top: 25px; border-top: 2px solid #ddd; padding-top: 15px;">
+                <h3 id="dash-name"></h3>
+                <p><strong>Total Estimated Payout:</strong> ₹<span id="dash-total"></span> (@ ₹<span id="dash-rate"></span>/kg)</p>
+                
+                <h4>Live Payment Progress</h4>
+                <div class="stepper">
+                    <div class="step" id="step-0"><div class="circle">1</div>District Nodal Officer Verification</div>
+                    <div class="step" id="step-1"><div class="circle">2</div>Ministry Verification</div>
+                    <div class="step" id="step-2"><div class="circle">3</div>Ministry to PFMS Transfer</div>
+                    <div class="step" id="step-3"><div class="circle">4</div>Money Transferred</div>
                 </div>
-                <p class="text-xs font-semibold" :class="getQueueStatusColor(activeFarmerBooking)">
-                  <span x-text="getQueueStatusText(activeFarmerBooking)"></span>
-                </p>
-              </div>
             </div>
-          </div>
-        </template>
-
-        <!-- Slot Booking Panel -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h3 class="text-base sm:text-lg font-bold text-slate-800 mb-4 pb-2 border-b flex items-center">
-            <i class="fa-regular fa-calendar-days text-emerald-600 mr-2"></i> <span x-text="t('book_slot_title')"></span>
-          </h3>
-
-          <form @submit.prevent="bookSlot()" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm">
-              <div>
-                <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('crop_type')"></label>
-                <select x-model="bookingForm.crop" required class="w-full border rounded-lg p-2.5 bg-white">
-                  <option value="Wheat (Kanak)">Wheat (Kanak)</option>
-                  <option value="Paddy (Dhan)">Paddy (Dhan)</option>
-                  <option value="Gram (Chana)">Gram (Chana)</option>
-                  <option value="Mustard (Sarson)">Mustard (Sarson)</option>
-                </select>
-              </div>
-              <div>
-                <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('weight_qtl')"></label>
-                <input type="number" min="1" max="500" x-model="bookingForm.weight" required placeholder="e.g. 25" class="w-full border rounded-lg p-2.5 outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('select_mandi')"></label>
-                <select x-model="bookingForm.centerId" @change="selectedSlot = null" required class="w-full border rounded-lg p-2.5 bg-white">
-                  <template x-for="c in centers" :key="c.id">
-                    <option :value="c.id" x-text="c.name + ' (' + c.district + ')'"></option>
-                  </template>
-                </select>
-              </div>
-            </div>
-
-            <!-- Exact Calendar Dates Selection Grid -->
-            <div>
-              <label class="block text-xs font-bold uppercase text-slate-600 mb-2" x-text="t('select_date_session')"></label>
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-                <template x-for="date in calendarDates" :key="date">
-                  <div class="border rounded-lg p-3 bg-slate-50 space-y-2">
-                    <div class="font-bold text-xs text-center text-slate-700 border-b pb-1">
-                      <i class="fa-regular fa-clock mr-1 text-emerald-600"></i><span x-text="formatDateLabel(date)"></span>
-                    </div>
-                    
-                    <!-- Morning Session -->
-                    <button type="button"
-                      @click="selectSlot(date, 'Morning')"
-                      :disabled="getAvailableSlots(bookingForm.centerId, date, 'Morning') <= 0"
-                      :class="{
-                        'bg-emerald-600 text-white': selectedSlot && selectedSlot.date === date && selectedSlot.session === 'Morning',
-                        'bg-white text-slate-800 border hover:border-emerald-500': !(selectedSlot && selectedSlot.date === date && selectedSlot.session === 'Morning'),
-                        'opacity-40 cursor-not-allowed bg-slate-200': getAvailableSlots(bookingForm.centerId, date, 'Morning') <= 0
-                      }"
-                      class="w-full text-left p-2 rounded text-xs transition">
-                      <div class="font-semibold" x-text="t('sess_morning')"></div>
-                      <div class="text-[10px] mt-0.5" :class="selectedSlot && selectedSlot.date === date && selectedSlot.session === 'Morning' ? 'text-emerald-100' : 'text-slate-500'">
-                        <span x-text="t('avail')"></span>: <strong x-text="getAvailableSlots(bookingForm.centerId, date, 'Morning')"></strong>
-                      </div>
-                    </button>
-
-                    <!-- Afternoon Session -->
-                    <button type="button"
-                      @click="selectSlot(date, 'Afternoon')"
-                      :disabled="getAvailableSlots(bookingForm.centerId, date, 'Afternoon') <= 0"
-                      :class="{
-                        'bg-emerald-600 text-white': selectedSlot && selectedSlot.date === date && selectedSlot.session === 'Afternoon',
-                        'bg-white text-slate-800 border hover:border-emerald-500': !(selectedSlot && selectedSlot.date === date && selectedSlot.session === 'Afternoon'),
-                        'opacity-40 cursor-not-allowed bg-slate-200': getAvailableSlots(bookingForm.centerId, date, 'Afternoon') <= 0
-                      }"
-                      class="w-full text-left p-2 rounded text-xs transition">
-                      <div class="font-semibold" x-text="t('sess_afternoon')"></div>
-                      <div class="text-[10px] mt-0.5" :class="selectedSlot && selectedSlot.date === date && selectedSlot.session === 'Afternoon' ? 'text-emerald-100' : 'text-slate-500'">
-                        <span x-text="t('avail')"></span>: <strong x-text="getAvailableSlots(bookingForm.centerId, date, 'Afternoon')"></strong>
-                      </div>
-                    </button>
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <div>
-              <button type="submit" :disabled="!selectedSlot" class="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold rounded-lg shadow transition" x-text="t('confirm_token_btn')"></button>
-            </div>
-          </form>
         </div>
-      </div>
+
+        <!-- Admin View -->
+        <div id="admin-view" class="view">
+            <h3>Backend Control & Excel View</h3>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <input type="text" id="filter-crop" placeholder="Filter by Crop" oninput="loadAdminData()">
+                <input type="text" id="filter-center" placeholder="Filter by Center" oninput="loadAdminData()">
+                <button class="action-btn" onclick="downloadExcel()">Export to Excel</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reg No</th>
+                        <th>Name</th>
+                        <th>Crop / Qty</th>
+                        <th>Total Price</th>
+                        <th>Payment Status</th>
+                        <th>Update Stage</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-table-body"></tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- ================= SECURED MANDI ADMIN VIEW ================= -->
-    <div x-show="currentTab === 'admin' && isAdminAuthenticated" class="space-y-6">
-      <div class="flex flex-wrap justify-between items-center bg-white p-4 rounded-xl border border-slate-200 gap-2">
-        <div>
-          <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold uppercase">Official Portal</span>
-          <h2 class="text-lg font-bold text-slate-800">Mandi Procurement Desk & Slot Controller</h2>
-        </div>
-        <div class="flex items-center space-x-2">
-          <button @click="resetToDefaults()" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded font-semibold transition">
-            <i class="fa-solid fa-rotate-left mr-1"></i> Reset Demo Data
-          </button>
-          <button @click="isAdminAuthenticated = false; currentTab = 'portal'" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded font-semibold transition">
-            Exit Admin Mode
-          </button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Mandi & Date Selector -->
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <h3 class="font-bold text-slate-800 border-b pb-2">Filter Mandi Schedule</h3>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Mandi Hub</label>
-            <select x-model="adminSelectedCenter" @change="syncAdminInput()" class="w-full border rounded-lg p-2 text-sm bg-white">
-              <template x-for="c in centers" :key="c.id">
-                <option :value="c.id" x-text="c.name"></option>
-              </template>
-            </select>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-bold text-slate-600 mb-1">Date</label>
-              <select x-model="adminSelectedDate" @change="syncAdminInput()" class="w-full border rounded-lg p-2 text-xs bg-white">
-                <template x-for="date in calendarDates" :key="date">
-                  <option :value="date" x-text="formatDateLabel(date)"></option>
-                </template>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-600 mb-1">Session</label>
-              <select x-model="adminSelectedSession" @change="syncAdminInput()" class="w-full border rounded-lg p-2 text-xs bg-white">
-                <option value="Morning">Morning (9-1)</option>
-                <option value="Afternoon">Afternoon (2-6)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Session Capacity Control -->
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
-          <h3 class="font-bold text-slate-800 border-b pb-2">Configure Slot Limit</h3>
-          <p class="text-xs text-slate-500">Set maximum booking capacity for this session:</p>
-          <div class="flex items-center space-x-3">
-            <input type="number" min="1" max="200" x-model.number="currentConfigLimit" class="w-24 border rounded-lg p-2 text-sm font-bold text-center" />
-            <button @click="updateSessionCapacity()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold">
-              Save Capacity
-            </button>
-          </div>
-          <div class="text-xs text-slate-500 pt-1">
-            Booked: <strong class="text-slate-800" x-text="getAdminSessionBookings().length"></strong> /
-            Total Allowed: <strong class="text-slate-800" x-text="getCapacity(adminSelectedCenter, adminSelectedDate, adminSelectedSession)"></strong>
-          </div>
-        </div>
-
-        <!-- Live Token Counter Control -->
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
-          <h3 class="font-bold text-slate-800 border-b pb-2">Live Token Counter Control</h3>
-          <p class="text-xs text-slate-500">Currently serving token at the scale/weighbridge:</p>
-          <div class="flex items-center space-x-2">
-            <button @click="decrementServingToken()" class="w-10 h-10 bg-slate-200 hover:bg-slate-300 rounded-lg font-bold text-lg">-</button>
-            <div class="flex-1 text-center font-black text-2xl text-emerald-700 bg-emerald-50 py-1.5 rounded-lg border border-emerald-200">
-              #<span x-text="getCurrentServing(adminSelectedCenter, adminSelectedDate, adminSelectedSession)"></span>
-            </div>
-            <button @click="incrementServingToken()" class="w-10 h-10 bg-slate-200 hover:bg-slate-300 rounded-lg font-bold text-lg">+</button>
-          </div>
-          <p class="text-[11px] text-slate-400 text-center">Advancing this notifies farmers of queue progress.</p>
-        </div>
-      </div>
-
-      <!-- Real-Time Booking Roster Table -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-        <h3 class="font-bold text-slate-800 mb-3">
-          Procurement Roster (<span x-text="formatDateLabel(adminSelectedDate)"></span> - <span x-text="adminSelectedSession"></span>)
-        </h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs sm:text-sm">
-            <thead>
-              <tr class="bg-slate-50 text-slate-600 uppercase border-b text-xs">
-                <th class="p-3">Token #</th>
-                <th class="p-3">Farmer Name</th>
-                <th class="p-3">Kisan ID / Phone</th>
-                <th class="p-3">Crop Type</th>
-                <th class="p-3">Weight (Qtl)</th>
-                <th class="p-3">Procurement Status</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              <template x-for="b in getAdminSessionBookings()" :key="b.id">
-                <tr :class="b.token <= getCurrentServing(adminSelectedCenter, adminSelectedDate, adminSelectedSession) ? 'bg-emerald-50/50' : ''">
-                  <td class="p-3 font-bold text-emerald-700">#<span x-text="b.token"></span></td>
-                  <td class="p-3 font-medium" x-text="b.farmerName"></td>
-                  <td class="p-3 text-slate-500" x-text="b.farmerId + ' | ' + b.phone"></td>
-                  <td class="p-3" x-text="b.crop"></td>
-                  <td class="p-3 font-semibold" x-text="b.weight"></td>
-                  <td class="p-3">
-                    <span x-show="b.token < getCurrentServing(adminSelectedCenter, adminSelectedDate, adminSelectedSession)" class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-xs">Completed</span>
-                    <span x-show="b.token === getCurrentServing(adminSelectedCenter, adminSelectedDate, adminSelectedSession)" class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-xs animate-pulse">At Counter</span>
-                    <span x-show="b.token > getCurrentServing(adminSelectedCenter, adminSelectedDate, adminSelectedSession)" class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs">In Queue</span>
-                  </td>
-                </tr>
-              </template>
-              <template x-if="getAdminSessionBookings().length === 0">
-                <tr>
-                  <td colspan="6" class="p-6 text-center text-slate-400">No farmer slots booked for this session.</td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ================= CONTACT & FEEDBACK VIEW ================= -->
-    <div x-show="currentTab === 'contact'" class="space-y-6 max-w-4xl mx-auto">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <h3 class="font-bold text-slate-800 text-lg border-b pb-2 flex items-center">
-            <i class="fa-solid fa-headset text-emerald-600 mr-2"></i> <span x-text="t('helpline_title')"></span>
-          </h3>
-          <p class="text-xs text-slate-600 leading-relaxed" x-text="t('helpline_desc')"></p>
-          <div class="space-y-3 pt-2 text-xs sm:text-sm">
-            <div class="flex items-center space-x-3 text-emerald-800 font-bold">
-              <i class="fa-solid fa-phone"></i> <span>Toll-Free: 1800-180-1551</span>
-            </div>
-            <div class="flex items-center space-x-3 text-slate-700">
-              <i class="fa-solid fa-envelope text-emerald-600"></i> <span>support-doca@nic.in</span>
-            </div>
-            <div class="flex items-center space-x-3 text-slate-700">
-              <i class="fa-solid fa-building text-emerald-600"></i> <span>Krishi Bhawan, New Delhi</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <h3 class="font-bold text-slate-800 text-lg border-b pb-2 flex items-center">
-            <i class="fa-regular fa-comment-dots text-emerald-600 mr-2"></i> <span x-text="t('feedback_title')"></span>
-          </h3>
-          <form @submit.prevent="submitFeedback()" class="space-y-3 text-xs sm:text-sm">
-            <div>
-              <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('feedback_name')"></label>
-              <input type="text" x-model="feedbackForm.name" required placeholder="Your Name" class="w-full border rounded-lg p-2 outline-none" />
-            </div>
-            <div>
-              <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('feedback_exp')"></label>
-              <select x-model="feedbackForm.rating" class="w-full border rounded-lg p-2 bg-white">
-                <option value="5">⭐⭐⭐⭐⭐ Excellent & Fast</option>
-                <option value="4">⭐⭐⭐⭐ Good Service</option>
-                <option value="3">⭐⭐⭐ Average Queue Time</option>
-                <option value="2">⭐⭐ Long Waiting Period</option>
-                <option value="1">⭐ Poor Management</option>
-              </select>
-            </div>
-            <div>
-              <label class="block font-bold uppercase text-slate-600 mb-1" x-text="t('feedback_msg')"></label>
-              <textarea x-model="feedbackForm.message" required rows="3" placeholder="Share your experience or suggestion..." class="w-full border rounded-lg p-2 outline-none"></textarea>
-            </div>
-            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 rounded-lg transition" x-text="t('submit_feedback_btn')"></button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- ================= FLOATING AI ASSISTANT ================= -->
-  <div class="fixed bottom-5 right-5 z-50">
-    <button @click="isAiOpen = !isAiOpen" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-full shadow-2xl flex items-center space-x-2 border-2 border-white transition transform hover:scale-105">
-      <i class="fa-solid fa-robot text-xl"></i>
-      <span class="text-xs font-bold hidden sm:inline" x-text="t('ai_assistant_btn')"></span>
-    </button>
-
-    <div x-show="isAiOpen" @click.outside="isAiOpen = false" class="absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-300 overflow-hidden flex flex-col h-[420px]">
-      <div class="bg-emerald-700 text-white p-3 flex justify-between items-center">
-        <div class="flex items-center space-x-2">
-          <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-sm font-bold">
-            <i class="fa-solid fa-wheat-awn text-amber-300"></i>
-          </div>
-          <div>
-            <h4 class="font-bold text-xs" x-text="t('ai_title')"></h4>
-            <span class="text-[10px] text-emerald-200 flex items-center">
-              <span class="w-1.5 h-1.5 bg-green-400 rounded-full inline-block mr-1"></span> Online (Voice & Text)
-            </span>
-          </div>
-        </div>
-        <button @click="isAiOpen = false" class="text-white hover:text-slate-200 text-sm">✕</button>
-      </div>
-
-      <div class="flex-1 p-3 overflow-y-auto space-y-2 bg-slate-50 text-xs">
-        <template x-for="(msg, idx) in chatMessages" :key="idx">
-          <div :class="msg.sender === 'ai' ? 'text-left' : 'text-right'">
-            <div :class="msg.sender === 'ai' ? 'bg-white text-slate-800 border border-slate-200 rounded-br-xl rounded-tr-xl rounded-tl-xl' : 'bg-emerald-600 text-white rounded-bl-xl rounded-tr-xl rounded-tl-xl'" class="inline-block p-2.5 max-w-[85%] shadow-sm whitespace-pre-line" x-text="msg.text"></div>
-          </div>
-        </template>
-      </div>
-
-      <div class="p-2 bg-white border-t border-slate-100 flex flex-wrap gap-1">
-        <button @click="askAi('how_to_book')" class="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 rounded px-2 py-0.5 hover:bg-emerald-100" x-text="t('ai_prompt_1')"></button>
-        <button @click="askAi('how_token_works')" class="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 rounded px-2 py-0.5 hover:bg-emerald-100" x-text="t('ai_prompt_2')"></button>
-      </div>
-
-      <form @submit.prevent="sendCustomAiQuery()" class="p-2 bg-white border-t flex items-center space-x-1">
-        <input type="text" x-model="aiInputText" :placeholder="t('ai_input_placeholder')" class="flex-1 border rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-emerald-500" />
-        <button type="submit" class="bg-emerald-600 text-white p-2 rounded-lg text-xs hover:bg-emerald-700">
-          <i class="fa-solid fa-paper-plane"></i>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ================= ADMIN PASSWORD AUTH MODAL ================= -->
-  <div x-show="showAdminPasswordModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full border border-slate-200" @click.outside="showAdminPasswordModal = false">
-      <div class="text-center mb-4">
-        <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-2 text-lg">
-          <i class="fa-solid fa-shield-halved"></i>
-        </div>
-        <h3 class="font-bold text-slate-800">Admin Authentication</h3>
-        <p class="text-xs text-slate-500">Mandi Officials & DoCA Staff Only</p>
-      </div>
-      <form @submit.prevent="verifyAdminPassword()" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Access PIN / Password</label>
-          <input type="password" x-model="adminPasswordInput" placeholder="Enter PIN (Demo: 1234)" class="w-full border rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500" required />
-          <p class="text-[10px] text-slate-400 mt-1">SIH Demo Passcode: <strong class="text-slate-600">1234</strong></p>
-        </div>
-        <div class="flex space-x-2">
-          <button type="button" @click="showAdminPasswordModal = false" class="w-1/2 py-2 border rounded-lg text-xs font-semibold text-slate-600">Cancel</button>
-          <button type="submit" class="w-1/2 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow">Verify</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    function kisanSetuApp() {
-      return {
-        lang: 'en',
-        currentTab: 'portal',
-        isFarmerLoggedIn: false,
-        isAdminAuthenticated: false,
-        showAdminPasswordModal: false,
-        adminPasswordInput: '',
-
-        calendarDates: ['2026-08-24', '2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28'],
-
-        centers: [
-          { id: 'C1', name: 'Karnal Central Grain Mandi', district: 'Karnal' },
-          { id: 'C2', name: 'Rohtak Food Procurement Hub', district: 'Rohtak' },
-          { id: 'C3', name: 'Ambala Cantt Yard', district: 'Ambala' }
-        ],
-
-        farmer: { id: '', name: '', phone: '' },
-        loginForm: { id: 'KISAN-4491', name: 'Harpreet Singh', phone: '9876543210' },
-        bookingForm: { crop: 'Wheat (Kanak)', weight: 30, centerId: 'C1' },
-        selectedSlot: null,
-
-        capacities: {},
-        servingTokens: {},
-        bookings: [],
-        activeFarmerBooking: null,
-
-        adminSelectedCenter: 'C1',
-        adminSelectedDate: '2026-08-24',
-        adminSelectedSession: 'Morning',
-        currentConfigLimit: 5,
-
-        isAiOpen: false,
-        aiInputText: '',
-        chatMessages: [
-          { sender: 'ai', text: 'Namaste Kisan Veer! I am your Kisan AI Sahayak. How can I assist you with booking or tracking your mandi token today?' }
-        ],
-
-        feedbackForm: { name: '', rating: '5', message: '' },
-
-        i18n: {
-          en: {
-            app_title: 'e-Kisan Mandi Token Portal',
-            nav_portal: 'Farmer Portal',
-            nav_contact: 'Contact & Feedback',
-            nav_admin: 'Admin Login',
-            farmer_login_title: 'Farmer Authentication',
-            farmer_login_sub: 'Enter your credentials to book a procurement slot',
-            kisan_id: 'Kisan / Registration ID',
-            farmer_name: 'Farmer Full Name',
-            mobile_no: 'Mobile Number',
-            proceed_btn: 'Proceed to Dashboard',
-            welcome_back: 'Welcome Back',
-            logout: 'Log Out',
-            token_confirmed: 'Slot Confirmed & Token Generated',
-            live_counter: 'Scale Counter Status',
-            book_slot_title: 'Book Crop Procurement Slot',
-            crop_type: 'Crop Type',
-            weight_qtl: 'Estimated Weight (Quintals)',
-            select_mandi: 'Procurement Center (Mandi)',
-            select_date_session: 'Select Calendar Date & Session',
-            sess_morning: 'Morning (9 AM - 1 PM)',
-            sess_afternoon: 'Afternoon (2 PM - 6 PM)',
-            avail: 'Available',
-            confirm_token_btn: 'Confirm Slot & Generate Token',
-            helpline_title: 'Kisan Support & Mandi Helpdesk',
-            helpline_desc: 'If you face any issues with token generation, transport delay, or crop moisture rejection, please reach out to our 24x7 control room.',
-            feedback_title: 'Farmer Grievance & Feedback',
-            feedback_name: 'Your Name / Kisan ID',
-            feedback_exp: 'Procurement Experience',
-            feedback_msg: 'Suggestions / Grievance',
-            submit_feedback_btn: 'Submit Feedback',
-            ai_assistant_btn: 'Kisan AI Sahayak',
-            ai_title: 'Kisan AI Sahayak (Assistant)',
-            ai_prompt_1: 'How to book slot?',
-            ai_prompt_2: 'How does live token work?',
-            ai_input_placeholder: 'Ask anything in English / Hindi...'
-          },
-          hi: {
-            app_title: 'ई-किसान मंडी टोकन पोर्टल',
-            nav_portal: 'किसान पोर्टल',
-            nav_contact: 'संपर्क और सुझाव',
-            nav_admin: 'अधिकारी लॉगिन',
-            farmer_login_title: 'किसान लॉगिन',
-            farmer_login_sub: 'फसल बेचने का स्लॉट बुक करने के लिए विवरण दर्ज करें',
-            kisan_id: 'किसान / पंजीकरण आईडी',
-            farmer_name: 'किसान का नाम',
-            mobile_no: 'मोबाइल नंबर',
-            proceed_btn: 'डैशबोर्ड पर जाएं',
-            welcome_back: 'स्वागत है',
-            logout: 'लॉग आउट',
-            token_confirmed: 'स्लॉट बुक हुआ और टोकन जारी',
-            live_counter: 'मंडी तौल कांटा स्थिति',
-            book_slot_title: 'फसल खरीद स्लॉट बुक करें',
-            crop_type: 'फसल का प्रकार',
-            weight_qtl: 'अनुमानित वजन (क्विंटल)',
-            select_mandi: 'खरीद केंद्र (मंडी)',
-            select_date_session: 'तारीख और सत्र चुनें',
-            sess_morning: 'सुबह (9 AM - 1 PM)',
-            sess_afternoon: 'दोपहर (2 PM - 6 PM)',
-            avail: 'उपलब्ध',
-            confirm_token_btn: 'स्लॉट कन्फर्म करें और टोकन पाएं',
-            helpline_title: 'किसान सहायता और मंडी हेल्पलाइन',
-            helpline_desc: 'यदि आपको स्लॉट बुकिंग या मंडी में किसी भी समस्या का सामना करना पड़ता है, तो हमारे नियंत्रण कक्ष से संपर्क करें।',
-            feedback_title: 'सुझाव एवं शिकायत',
-            feedback_name: 'आपका नाम / किसान आईडी',
-            feedback_exp: 'मंडी अनुभव',
-            feedback_msg: 'अपना सुझाव या शिकायत लिखें',
-            submit_feedback_btn: 'फीडबैक सबमिट करें',
-            ai_assistant_btn: 'किसान AI सहायक',
-            ai_title: 'किसान AI सहायक',
-            ai_prompt_1: 'स्लॉट कैसे बुक करें?',
-            ai_prompt_2: 'टोकन कैसे काम करता है?',
-            ai_input_placeholder: 'हिंदी या अंग्रेजी में कुछ भी पूछें...'
-          },
-          pa: {
-            app_title: 'ਈ-ਕਿਸਾਨ ਮੰਡੀ ਟੋਕਨ ਪੋਰਟਲ',
-            nav_portal: 'ਕਿਸਾਨ ਪੋਰਟਲ',
-            nav_contact: 'ਸੰਪਰਕ ਅਤੇ ਫੀਡਬੈਕ',
-            nav_admin: 'ਅਧਿਕਾਰੀ ਲੌਗਇਨ',
-            farmer_login_title: 'ਕਿਸਾਨ ਲੌਗਇਨ',
-            farmer_login_sub: 'ਜਿਣਸ ਵੇਚਣ ਲਈ ਆਪਣਾ ਸਲਾਟ ਬੁੱਕ ਕਰੋ',
-            kisan_id: 'ਕਿਸਾਨ / ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਆਈਡੀ',
-            farmer_name: 'ਕਿਸਾਨ ਦਾ ਪੂਰਾ ਨਾਮ',
-            mobile_no: 'ਮੋਬਾਈਲ ਨੰਬਰ',
-            proceed_btn: 'ਅੱਗੇ ਵਧੋ',
-            welcome_back: 'ਜੀ ਆਇਆਂ ਨੂੰ',
-            logout: 'ਲੌਗ ਆਉਟ',
-            token_confirmed: 'ਸਲਾਟ ਕਨਫਰਮ - ਟੋਕਨ ਜਾਰੀ',
-            live_counter: 'ਕੰਡੇ ਦਾ ਲਾਈਵ ਨੰਬਰ',
-            book_slot_title: 'ਜਿਣਸ ਖਰੀਦ ਸਲਾਟ ਬੁੱਕ ਕਰੋ',
-            crop_type: 'ਫ਼ਸਲ ਦੀ ਕਿਸਮ',
-            weight_qtl: 'ਵਜ਼ਨ (ਕੁਇੰਟਲ)',
-            select_mandi: 'ਖਰੀਦ ਕੇਂਦਰ (ਮੰਡੀ)',
-            select_date_session: 'ਮਿਤੀ ਅਤੇ ਸ਼ਡਿਊਲ ਚੁਣੋ',
-            sess_morning: 'ਸਵੇਰੇ (9 AM - 1 PM)',
-            sess_afternoon: 'ਦੁਪਹਿਰ (2 PM - 6 PM)',
-            avail: 'ਉਪਲਬਧ',
-            confirm_token_btn: 'ਸਲਾਟ ਬੁੱਕ ਕਰੋ ਅਤੇ ਟੋਕਨ ਲਵੋ',
-            helpline_title: 'ਕਿਸਾਨ ਸਹਾਇਤਾ ਹੈਲਪਲਾਈਨ',
-            helpline_desc: 'ਕਿਸੇ ਵੀ ਦਿੱਕਤ ਜਾਂ ਪੁੱਛਗਿੱਛ ਲਈ ਸਾਡੇ ਕੰਟਰੋਲ ਰੂਮ ਨਾਲ ਰਾਬਤਾ ਕਾਇਮ ਕਰੋ।',
-            feedback_title: 'ਸੁਝਾਅ ਅਤੇ ਸ਼ਿਕਾਇਤ',
-            feedback_name: 'ਤੁਹਾਡਾ ਨਾਮ',
-            feedback_exp: 'ਤਜ਼ਰਬਾ',
-            feedback_msg: 'ਆਪਣਾ ਸੁਝਾਅ ਦਿਓ',
-            submit_feedback_btn: 'ਫੀਡਬੈਕ ਦਰਜ ਕਰੋ',
-            ai_assistant_btn: 'ਕਿਸਾਨ AI ਸਹਾਇਕ',
-            ai_title: 'ਕਿਸਾਨ AI ਸਹਾਇਕ',
-            ai_prompt_1: 'ਸਲਾਟ ਕਿਵੇਂ ਬੁੱਕ ਕਰੀਏ?',
-            ai_prompt_2: 'ਲਾਈਵ ਟੋਕਨ ਕਿਵੇਂ ਚੱਲਦਾ ਹੈ?',
-            ai_input_placeholder: 'ਪੰਜਾਬੀ ਜਾਂ ਅੰਗਰੇਜ਼ੀ ਵਿੱਚ ਪੁੱਛੋ...'
-          }
-        },
-
-        t(key) {
-          return (this.i18n[this.lang] && this.i18n[this.lang][key]) || this.i18n['en'][key] || key;
-        },
-
-        init() {
-          const actFarmer = localStorage.getItem('ks_active_farmer');
-          if (actFarmer) {
-            this.farmer = JSON.parse(actFarmer);
-            this.isFarmerLoggedIn = true;
-          }
-
-          // Initial load from server
-          this.fetchServerState();
-
-          // Sync every 2 seconds across all active browser windows and phones
-          setInterval(() => this.fetchServerState(), 2000);
-        },
-
-        async fetchServerState() {
-          try {
-            const res = await fetch('/api/state');
-            if (!res.ok) return;
-            const data = await res.json();
-            this.bookings = data.bookings || [];
-            this.capacities = data.capacities || {};
-            this.servingTokens = data.servingTokens || {};
-            this.refreshActiveBooking();
-            this.syncAdminInput();
-          } catch (e) {
-            console.error('Server sync error:', e);
-          }
-        },
-
-        formatDateLabel(dateStr) {
-          const d = new Date(dateStr + 'T00:00:00');
-          return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', weekday: 'short' });
-        },
-
-        loginFarmer() {
-          this.farmer = { ...this.loginForm };
-          this.isFarmerLoggedIn = true;
-          localStorage.setItem('ks_active_farmer', JSON.stringify(this.farmer));
-          this.refreshActiveBooking();
-        },
-
-        logoutFarmer() {
-          this.isFarmerLoggedIn = false;
-          this.farmer = { id: '', name: '', phone: '' };
-          this.activeFarmerBooking = null;
-          localStorage.removeItem('ks_active_farmer');
-        },
-
-        refreshActiveBooking() {
-          if (this.farmer.id) {
-            this.activeFarmerBooking = this.bookings.find(b => b.farmerId === this.farmer.id) || null;
-          }
-        },
-
-        openAdminModal() {
-          if (this.isAdminAuthenticated) {
-            this.currentTab = 'admin';
-          } else {
-            this.showAdminPasswordModal = true;
-          }
-        },
-
-        verifyAdminPassword() {
-          if (this.adminPasswordInput === '1234') {
-            this.isAdminAuthenticated = true;
-            this.showAdminPasswordModal = false;
-            this.currentTab = 'admin';
-            this.adminPasswordInput = '';
-          } else {
-            alert('Incorrect Admin Passcode! Use 1234 for the demo.');
-          }
-        },
-
-        getCapacity(centerId, date, session) {
-          const key = `${centerId}-${date}-${session}`;
-          return this.capacities[key] !== undefined ? this.capacities[key] : 5;
-        },
-
-        getAvailableSlots(centerId, date, session) {
-          const total = this.getCapacity(centerId, date, session);
-          const booked = this.bookings.filter(b => b.centerId === centerId && b.date === date && b.session === session).length;
-          return Math.max(0, total - booked);
-        },
-
-        selectSlot(date, session) {
-          this.selectedSlot = { date, session };
-        },
-
-        async bookSlot() {
-          if (!this.selectedSlot) return;
-          const { date, session } = this.selectedSlot;
-          const centerId = this.bookingForm.centerId;
-
-          if (this.getAvailableSlots(centerId, date, session) <= 0) {
-            alert('Sorry, this slot is completely full!');
-            return;
-          }
-
-          const newBooking = {
-            centerId,
-            date,
-            session,
-            farmerId: this.farmer.id,
-            farmerName: this.farmer.name,
-            phone: this.farmer.phone,
-            crop: this.bookingForm.crop,
-            weight: Number(this.bookingForm.weight)
-          };
-
-          try {
-            const res = await fetch('/api/book-slot', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(newBooking)
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-              this.selectedSlot = null;
-              await this.fetchServerState();
-              alert(`Slot Confirmed! Your Token Number is #${data.booking.token} for ${this.formatDateLabel(date)} (${session})`);
-            } else {
-              alert(data.error || 'Booking failed');
-            }
-          } catch (e) {
-            alert('Failed to connect to the backend server.');
-          }
-        },
-
-        getCenterName(id) {
-          const c = this.centers.find(item => item.id === id);
-          return c ? c.name : id;
-        },
-
-        getCurrentServing(centerId, date, session) {
-          const key = `${centerId}-${date}-${session}`;
-          return this.servingTokens[key] || 1;
-        },
-
-        getQueueStatusText(booking) {
-          const serving = this.getCurrentServing(booking.centerId, booking.date, booking.session);
-          if (booking.token < serving) return 'Your crop selling has been completed.';
-          if (booking.token === serving) return 'Proceed to Weighed Counter immediately!';
-          return `${booking.token - serving} farmers ahead of you.`;
-        },
-
-        getQueueStatusColor(booking) {
-          const serving = this.getCurrentServing(booking.centerId, booking.date, booking.session);
-          if (booking.token === serving) return 'text-emerald-700';
-          if (booking.token < serving) return 'text-slate-500';
-          return 'text-amber-700';
-        },
-
-        getAdminSessionBookings() {
-          return this.bookings.filter(b => 
-            b.centerId === this.adminSelectedCenter && 
-            b.date === this.adminSelectedDate && 
-            b.session === this.adminSelectedSession
-          );
-        },
-
-        syncAdminInput() {
-          this.currentConfigLimit = this.getCapacity(this.adminSelectedCenter, this.adminSelectedDate, this.adminSelectedSession);
-        },
-
-        async updateSessionCapacity() {
-          try {
-            await fetch('/api/admin/capacity', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                centerId: this.adminSelectedCenter,
-                date: this.adminSelectedDate,
-                session: this.adminSelectedSession,
-                capacity: Number(this.currentConfigLimit)
-              })
-            });
-            await this.fetchServerState();
-            alert(`Capacity updated to ${this.currentConfigLimit} slots.`);
-          } catch (e) {
-            alert('Error updating capacity on server.');
-          }
-        },
-
-        async incrementServingToken() {
-          try {
-            await fetch('/api/admin/serving-token', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                centerId: this.adminSelectedCenter,
-                date: this.adminSelectedDate,
-                session: this.adminSelectedSession,
-                action: 'increment'
-              })
-            });
-            await this.fetchServerState();
-          } catch (e) {
-            console.error(e);
-          }
-        },
-
-        async decrementServingToken() {
-          try {
-            await fetch('/api/admin/serving-token', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                centerId: this.adminSelectedCenter,
-                date: this.adminSelectedDate,
-                session: this.adminSelectedSession,
-                action: 'decrement'
-              })
-            });
-            await this.fetchServerState();
-          } catch (e) {
-            console.error(e);
-          }
-        },
-
-        async resetToDefaults() {
-          if (confirm('Reset all demo data back to original state?')) {
-            await fetch('/api/reset', { method: 'POST' });
-            localStorage.clear();
-            location.reload();
-          }
-        },
-
-        askAi(type) {
-          if (type === 'how_to_book') {
-            this.chatMessages.push({ sender: 'user', text: 'How do I book a slot?' });
-            setTimeout(() => {
-              this.chatMessages.push({ 
-                sender: 'ai', 
-                text: '1. Log in with your Kisan ID.\n2. Choose crop & estimated weight.\n3. Pick an exact date and session (Morning/Afternoon).\n4. Click "Confirm Slot" to receive your official Token Number!' 
-              });
-            }, 400);
-          } else if (type === 'how_token_works') {
-            this.chatMessages.push({ sender: 'user', text: 'How does live token queue work?' });
-            setTimeout(() => {
-              this.chatMessages.push({ 
-                sender: 'ai', 
-                text: 'Your token number determines your turn at the mandi weighbridge. The Live Counter on your dashboard shows which token is currently selling crops, so you never have to stand in long queues!' 
-              });
-            }, 400);
-          }
-        },
-
-        sendCustomAiQuery() {
-          if (!this.aiInputText.trim()) return;
-          const query = this.aiInputText;
-          this.chatMessages.push({ sender: 'user', text: query });
-          this.aiInputText = '';
-
-          setTimeout(() => {
-            let reply = "I can guide you on booking slots, checking your mandi queue status, or contacting your local nodal officer. Please choose a slot from the calendar to begin.";
-            if (query.toLowerCase().includes('payment') || query.toLowerCase().includes('rupee') || query.toLowerCase().includes('paisa')) {
-              reply = "Direct Benefit Transfer (DBT) payments will be credited to your linked bank account within 48-72 hours of crop weighing.";
-            } else if (query.toLowerCase().includes('kisan id') || query.toLowerCase().includes('login')) {
-              reply = "You can enter your 10-digit mobile number or Kisan Registration ID on the login card above.";
-            }
-            this.chatMessages.push({ sender: 'ai', text: reply });
-          }, 500);
-        },
-
-        submitFeedback() {
-          alert('Thank you! Your feedback has been sent to the Department of Consumer Affairs.');
-          this.feedbackForm = { name: '', rating: '5', message: '' };
+    <script>
+        function switchTab(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(viewId + '-view').classList.add('active');
+            event.target.classList.add('active');
+            if (viewId === 'admin') loadAdminData();
         }
-      };
-    }
-  </script>
+
+        async function registerFarmer() {
+            const payload = {
+                name: document.getElementById('reg-name').value,
+                mobile: document.getElementById('reg-mobile').value,
+                crop: document.getElementById('reg-crop').value,
+                quantityKg: document.getElementById('reg-qty').value,
+                center: document.getElementById('reg-center').value,
+                slotDate: document.getElementById('reg-date').value,
+                password: document.getElementById('reg-pwd').value
+            };
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`Registration complete!\nYour Reg Number: ${data.regNo}`);
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function loginFarmer() {
+            const regNo = document.getElementById('login-reg').value;
+            const password = document.getElementById('login-pwd').value;
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ regNo, password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const f = data.farmer;
+                document.getElementById('farmer-dashboard').style.display = 'block';
+                document.getElementById('dash-name').innerText = `Welcome, ${f.name} (${f.regNo})`;
+                document.getElementById('dash-total').innerText = f.totalAmount;
+                document.getElementById('dash-rate').innerText = f.ratePerKg;
+
+                for (let i = 0; i <= 3; i++) {
+                    const stepEl = document.getElementById(`step-${i}`);
+                    stepEl.className = 'step';
+                    if (i < f.paymentStep) stepEl.classList.add('done');
+                    else if (i === f.paymentStep) stepEl.classList.add('active');
+                }
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function loadAdminData() {
+            const crop = document.getElementById('filter-crop').value;
+            const center = document.getElementById('filter-center').value;
+            const res = await fetch(`/api/admin/records?crop=${crop}&center=${center}`);
+            const data = await res.json();
+            
+            const tbody = document.getElementById('admin-table-body');
+            tbody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.regNo}</td>
+                    <td>${item.name}</td>
+                    <td>${item.crop} (${item.quantityKg} kg)</td>
+                    <td>₹${item.totalAmount}</td>
+                    <td>${item.status}</td>
+                    <td>
+                        <select onchange="updatePayment('${item.regNo}', this.value)">
+                            <option value="0" ${item.paymentStep === 0 ? 'selected' : ''}>District Nodal</option>
+                            <option value="1" ${item.paymentStep === 1 ? 'selected' : ''}>Ministry Verif</option>
+                            <option value="2" ${item.paymentStep === 2 ? 'selected' : ''}>PFMS Transfer</option>
+                            <option value="3" ${item.paymentStep === 3 ? 'selected' : ''}>Money Transferred</option>
+                        </select>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function updatePayment(regNo, stepIndex) {
+            await fetch('/api/admin/update-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ regNo, stepIndex })
+            });
+            loadAdminData();
+        }
+
+        function downloadExcel() {
+            window.location.href = '/api/admin/export-excel';
+        }
+    </script>
 </body>
 </html>
