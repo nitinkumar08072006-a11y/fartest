@@ -156,20 +156,21 @@
                         </div>
                         <div class="form-group">
                             <label>Crop Type</label>
-                            <select id="bk-crop">
-                                <option value="Wheat">Wheat (₹25/kg)</option>
-                                <option value="Rice">Rice (₹32/kg)</option>
-                                <option value="Cotton">Cotton (₹65/kg)</option>
-                                <option value="Mustard">Mustard (₹55/kg)</option>
-                                <option value="Soybean">Soybean (₹48/kg)</option>
+                            <select id="bk-crop" onchange="calculateEstimate()">
+                                <option value="Wheat">Wheat</option>
+                                <option value="Rice">Rice</option>
+                                <option value="Cotton">Cotton</option>
+                                <option value="Mustard">Mustard</option>
+                                <option value="Soybean">Soybean</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Total Quantity (in Kg)</label>
-                            <input type="number" id="bk-qty" placeholder="e.g. 500">
+                            <input type="number" id="bk-qty" placeholder="e.g. 500" oninput="calculateEstimate()">
                         </div>
                     </div>
 
+                    <div id="payout-estimate" style="font-weight: bold; color: var(--primary); margin: 5px 0;"></div>
                     <div id="slot-status-box" class="queue-box">Please select a date to check availability.</div>
                     <button class="btn btn-full" onclick="bookSlot()">Confirm Booking & Generate Mandi Token</button>
                 </div>
@@ -193,6 +194,27 @@
             </div>
 
             <div id="admin-panel" style="display:none;">
+                <div class="card">
+                    <h3>Live MSP Price Manager & Controls</h3>
+                    <div class="grid" style="margin-top:15px;">
+                        <div class="form-group">
+                            <label>Crop</label>
+                            <select id="adm-price-crop">
+                                <option value="Wheat">Wheat</option>
+                                <option value="Rice">Rice</option>
+                                <option value="Cotton">Cotton</option>
+                                <option value="Mustard">Mustard</option>
+                                <option value="Soybean">Soybean</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>New MSP Price per Kg (₹)</label>
+                            <input type="number" id="adm-price-val" placeholder="e.g. 28">
+                            <button class="btn" style="margin-top:5px;" onclick="updateMSPPrice()">Update MSP Rate</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <h3>Center Capacity & Live Token Queue Manager</h3>
                     <div class="grid" style="margin-top:15px;">
@@ -219,7 +241,7 @@
 
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <h3>Procurement & Payment Control</h3>
+                        <h3>Procurement & Payment Pipeline Control</h3>
                         <button class="btn" onclick="downloadExcel()">Export All to Excel (.xlsx)</button>
                     </div>
 
@@ -282,6 +304,24 @@
 
     <script>
         let currentFarmer = null;
+        let globalPrices = {};
+
+        async function fetchPrices() {
+            try {
+                const res = await fetch('/api/prices');
+                globalPrices = await res.json();
+                calculateEstimate();
+            } catch (e) {}
+        }
+        fetchPrices();
+
+        function calculateEstimate() {
+            const crop = document.getElementById('bk-crop').value;
+            const qty = Number(document.getElementById('bk-qty').value || 0);
+            const rate = globalPrices[crop] || 25;
+            const total = qty * rate;
+            document.getElementById('payout-estimate').innerText = qty > 0 ? `Rate: ₹${rate}/kg | Total Estimated Payout: ₹${total}` : `Current MSP Rate: ₹${rate}/kg`;
+        }
 
         const I18N = {
             en: {
@@ -354,7 +394,7 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    alert(`Registration Successful!\n\nYour Registration ID is: ${data.regNo}\n\nPlease note this ID down. You will use it with your password to log in.`);
+                    alert(`Registration Successful!\n\nYour Registration ID is: ${data.regNo}\n\nYou can now log in using this ID and your password on ANY device.`);
                     document.getElementById('log-reg').value = data.regNo;
                     document.getElementById('t-login').click();
                 } else {
@@ -391,6 +431,7 @@
                     tmrw.setDate(tmrw.getDate() + 1);
                     document.getElementById('bk-date').value = tmrw.toISOString().split('T')[0];
                     checkAvailability();
+                    fetchPrices();
                     renderFarmerBookings(data.bookings);
                 } else {
                     alert(data.error || 'Invalid Credentials');
@@ -418,7 +459,7 @@
                 
                 const box = document.getElementById('slot-status-box');
                 if (data.availableSlots > 0) {
-                    box.innerHTML = `🟢 <strong>${data.availableSlots} Slots Available</strong> out of ${data.maxCapacity} for this session.`;
+                    box.innerHTML = `🟢 <strong>${data.availableSlots} Slots Available</strong> out of ${data.maxCapacity} for this session. (Now Serving Token #${data.currentServedToken || '0'})`;
                     box.style.color = '#166534';
                 } else {
                     box.innerHTML = `🔴 <strong>Session Full!</strong> 0 slots remaining. Please choose another date or session.`;
@@ -448,7 +489,7 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    alert(`Slot Confirmed!\nYour Token Number is: ${data.booking.tokenNumber}`);
+                    alert(`Slot Confirmed!\nYour Mandi Token Number is: ${data.booking.tokenNumber}`);
                     const rel = await fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -480,7 +521,7 @@
                         <small>Procurement Center: <strong>${b.center}</strong> | Date: <strong>${b.slotDate}</strong> (${b.session})</small>
                     </div>
 
-                    <p><strong>Crop:</strong> ${b.crop} | <strong>Quantity:</strong> ${b.quantityKg} kg | <strong>Total Estimated Payout:</strong> ₹${b.totalAmount} (@ ₹${b.ratePerKg}/kg)</p>
+                    <p><strong>Crop:</strong> ${b.crop} | <strong>Quantity:</strong> ${b.quantityKg} kg | <strong>Total Payout:</strong> ₹${b.totalAmount} (@ ₹${b.ratePerKg}/kg)</p>
 
                     <h4 style="margin-top:15px;">Payment Pipeline Status:</h4>
                     <div class="stepper">
@@ -554,6 +595,20 @@
             loadAdminData();
         }
 
+        async function updateMSPPrice() {
+            const crop = document.getElementById('adm-price-crop').value;
+            const price = document.getElementById('adm-price-val').value;
+            if (!price || Number(price) <= 0) return alert('Enter a valid price');
+
+            await fetch('/api/admin/update-price', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ crop, price })
+            });
+            alert(`MSP for ${crop} updated to ₹${price}/kg`);
+            fetchPrices();
+        }
+
         async function updateCapacity() {
             const center = document.getElementById('adm-center').value;
             const capacity = document.getElementById('adm-cap').value;
@@ -614,7 +669,7 @@
                 let reply = "You can book your slot under the 'Farmer Login' tab after registering. You will get an exact Token Number for mandi entry.";
                 const lower = txt.toLowerCase();
                 if (lower.includes('price') || lower.includes('rate') || lower.includes('msp')) {
-                    reply = "Government MSP rates: Wheat: ₹25/kg, Rice: ₹32/kg, Cotton: ₹65/kg, Mustard: ₹55/kg, Soybean: ₹48/kg.";
+                    reply = "Government MSP rates are fetched directly from our live mandi pricing database.";
                 } else if (lower.includes('payment') || lower.includes('money') || lower.includes('pfms')) {
                     reply = "Payments are directly sent to your bank via PFMS following District Nodal & Ministry verification.";
                 } else if (lower.includes('token') || lower.includes('slot')) {
