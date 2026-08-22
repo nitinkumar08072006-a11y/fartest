@@ -1,126 +1,144 @@
 const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
 const path = require('path');
+const XLSX = require('xlsx');
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'ux')));
 
-// Serve static frontend files directly
-app.use(express.static(__dirname));
+// Fixed price per kg managed by backend
+const PRICE_CONFIG = {
+    "Wheat": 25,
+    "Rice": 32,
+    "Cotton": 65,
+    "Mustard": 55,
+    "Soybean": 48
+};
 
-const DB_FILE = path.join(__dirname, 'mandi_database.json');
+// In-memory data store
+let farmers = [];
+let slotsData = [];
 
-// Initialize database file if it does not exist
-if (!fs.existsSync(DB_FILE)) {
-  const initialData = {
-    bookings: [
-      { id: 1, centerId: 'C1', date: '2026-08-24', session: 'Morning', token: 1, farmerId: 'KISAN-1001', farmerName: 'Sukhwinder Singh', phone: '9812300001', crop: 'Wheat (Kanak)', weight: 40 },
-      { id: 2, centerId: 'C1', date: '2026-08-24', session: 'Morning', token: 2, farmerId: 'KISAN-1002', farmerName: 'Gurdeep Lal', phone: '9812300002', crop: 'Paddy (Dhan)', weight: 25 }
-    ],
-    capacities: {},
-    servingTokens: {}
-  };
-  fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
+const PAYMENT_STAGES = [
+    "Verification from District Nodal Officer",
+    "Verification from Ministry",
+    "Ministry to PFMS Transfer",
+    "Money Transferred"
+];
+
+// Helper to generate Registration Number
+function generateRegNo() {
+    return 'REG-' + Math.floor(100000 + Math.random() * 900000);
 }
 
-function readDb() {
-  try {
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-  } catch (err) {
-    return { bookings: [], capacities: {}, servingTokens: {} };
-  }
-}
+// 1. Farmer Registration
+app.post('/api/register', (req, res) => {
+    const { name, mobile, crop, quantityKg, center, slotDate, password } = req.body;
+    
+    if (!name || !password || !crop || !quantityKg) {
+        return res.status(400).json({ error: 'All mandatory fields are required' });
+    }
 
-function writeDb(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
+    const regNo = generateRegNo();
+    const ratePerKg = PRICE_CONFIG[crop] || 20;
+    const totalAmount = ratePerKg * Number(quantityKg);
 
-// 1. Fetch entire persistent state
-app.get('/api/state', (req, res) => {
-  res.json(readDb());
+    const newFarmer = {
+        regNo,
+        password,
+        name,
+        mobile,
+        crop,
+        quantityKg: Number(quantityKg),
+        ratePerKg,
+        totalAmount,
+        center: center || 'Center A',
+        slotDate: slotDate || new Date().toISOString().split('T')[0],
+        paymentStep: 0, // 0 to 3
+        status: PAYMENT_STAGES[0]
+    };
+
+    farmers.push(newFarmer);
+    slotsData.push(newFarmer);
+
+    res.json({
+        success: true,
+        regNo,
+        message: 'Registration successful! Use your Reg No and Password to login.'
+    });
 });
 
-// 2. Book slot
-app.post('/api/book-slot', (req, res) => {
-  const { centerId, date, session, farmerId, farmerName, phone, crop, weight } = req.body;
-  const db = readDb();
-  
-  const key = `${centerId}-${date}-${session}`;
-  const maxCapacity = db.capacities[key] !== undefined ? db.capacities[key] : 5;
-  const currentSessionBookings = db.bookings.filter(b => b.centerId === centerId && b.date === date && b.session === session);
+// 2. Farmer Login
+app.post('/api/login', (req, res) => {
+    const { regNo, password } = req.body;
+    const farmer = farmers.find(f => f.regNo === regNo && f.password === password);
+    
+    if (!farmer) {
+        return res.status(401).json({ error: 'Invalid Registration Number or Password' });
+    }
 
-  if (currentSessionBookings.length >= maxCapacity) {
-    return res.status(400).json({ error: 'This session is fully booked!' });
-  }
-
-  const nextToken = currentSessionBookings.length + 1;
-  const newBooking = {
-    id: Date.now(),
-    centerId,
-    date,
-    session,
-    token: nextToken,
-    farmerId,
-    farmerName,
-    phone,
-    crop,
-    weight: Number(weight)
-  };
-
-  db.bookings.push(newBooking);
-  writeDb(db);
-
-  res.status(201).json({ message: 'Slot booked successfully', booking: newBooking });
+    res.json({ success: true, farmer });
 });
 
-// 3. Update session limit (Admin)
-app.post('/api/admin/capacity', (req, res) => {
-  const { centerId, date, session, capacity } = req.body;
-  const db = readDb();
-  const key = `${centerId}-${date}-${session}`;
-  
-  db.capacities[key] = Number(capacity);
-  writeDb(db);
-
-  res.json({ message: 'Capacity updated', key, capacity });
+// 3. Fetch Farmer Dashboard Details
+app.get('/api/farmer/:regNo', (req, res) => {
+    const farmer = farmers.find(f => f.regNo === req.params.regNo);
+    if (!farmer) return res.status(404).json({ error: 'Farmer not found' });
+    res.json(farmer);
 });
 
-// 4. Update counter number (Admin)
-app.post('/api/admin/serving-token', (req, res) => {
-  const { centerId, date, session, action } = req.body;
-  const db = readDb();
-  const key = `${centerId}-${date}-${session}`;
-  let current = db.servingTokens[key] || 1;
+// 4. Admin: Get all slots with filters
+app.get('/api/admin/records', (req, res) => {
+    const { slotDate, crop, center } = req.query;
+    let filtered = [...slotsData];
 
-  if (action === 'increment') current++;
-  if (action === 'decrement' && current > 1) current--;
+    if (slotDate) filtered = filtered.filter(f => f.slotDate === slotDate);
+    if (crop) filtered = filtered.filter(f => f.crop.toLowerCase() === crop.toLowerCase());
+    if (center) filtered = filtered.filter(f => f.center.toLowerCase() === center.toLowerCase());
 
-  db.servingTokens[key] = current;
-  writeDb(db);
-
-  res.json({ message: 'Token counter updated', servingToken: current });
+    res.json(filtered);
 });
 
-// 5. Reset demo data
-app.post('/api/reset', (req, res) => {
-  const defaultData = {
-    bookings: [
-      { id: 1, centerId: 'C1', date: '2026-08-24', session: 'Morning', token: 1, farmerId: 'KISAN-1001', farmerName: 'Sukhwinder Singh', phone: '9812300001', crop: 'Wheat (Kanak)', weight: 40 }
-    ],
-    capacities: {},
-    servingTokens: {}
-  };
-  writeDb(defaultData);
-  res.json({ success: true });
+// 5. Admin: Update Payment Step
+app.post('/api/admin/update-payment', (req, res) => {
+    const { regNo, stepIndex } = req.body;
+    const farmer = farmers.find(f => f.regNo === regNo);
+    
+    if (!farmer) return res.status(404).json({ error: 'Farmer not found' });
+    if (stepIndex < 0 || stepIndex >= PAYMENT_STAGES.length) {
+        return res.status(400).json({ error: 'Invalid step' });
+    }
+
+    farmer.paymentStep = Number(stepIndex);
+    farmer.status = PAYMENT_STAGES[stepIndex];
+
+    res.json({ success: true, message: 'Payment status updated', currentStatus: farmer.status });
 });
 
-const PORT = 5000;
-// Binding to 0.0.0.0 enables access from any device on your local network
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n==========================================`);
-  console.log(`🚀 KisanSetu Backend & Frontend Live:`);
-  console.log(`👉 Local: http://localhost:${PORT}`);
-  console.log(`==========================================\n`);
+// 6. Admin: Download Excel file
+app.get('/api/admin/export-excel', (req, res) => {
+    const exportData = slotsData.map(item => ({
+        "Reg No": item.regNo,
+        "Farmer Name": item.name,
+        "Mobile": item.mobile,
+        "Crop": item.crop,
+        "Quantity (Kg)": item.quantityKg,
+        "Rate/Kg (INR)": item.ratePerKg,
+        "Total Amount (INR)": item.totalAmount,
+        "Procurement Center": item.center,
+        "Slot Date": item.slotDate,
+        "Payment Status": item.status
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Farmer_Slots");
+
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', 'attachment; filename="Farmer_Slots_Report.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
 });
+
+const PORT = 3000;
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
