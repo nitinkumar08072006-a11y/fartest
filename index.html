@@ -5,259 +5,624 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PM Kisan Procurement Portal</title>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f6f8; color: #2d3748; }
-        .header { background: #134e2b; color: white; padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header-left { display: flex; align-items: center; gap: 20px; }
-        .header img { width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 3px solid #ff9933; background: #fff; }
-        .header h1 { margin: 0; font-size: 22px; }
-        .header p { margin: 3px 0 0; font-size: 13px; color: #d1fae5; }
-        .container { max-width: 950px; margin: 30px auto; padding: 25px; background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        :root {
+            --primary: #134e2b;
+            --primary-dark: #0b331c;
+            --accent: #ff9933;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 70px; }
+
+        .top-bar { background: #0b331c; color: #fff; padding: 8px 30px; display: flex; justify-content: space-between; font-size: 13px; align-items: center; }
+        .header { background: var(--primary); color: white; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+        .header-brand { display: flex; align-items: center; gap: 18px; }
+        .header-brand img { width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); background: white; }
         
-        .tabs { display: flex; gap: 15px; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; }
-        .tab-btn { padding: 12px 24px; border: none; background: none; font-size: 15px; font-weight: 600; color: #718096; cursor: pointer; border-bottom: 3px solid transparent; }
-        .tab-btn.active { color: #134e2b; border-color: #134e2b; }
+        .lang-select { padding: 6px 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; }
         
+        .container { max-width: 1050px; margin: 25px auto; padding: 0 15px; }
+        .tabs { display: flex; gap: 8px; background: #e2e8f0; padding: 6px; border-radius: 8px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; border-radius: 6px; font-weight: 600; cursor: pointer; color: #475569; text-align: center; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 25px; margin-bottom: 20px; }
         .view { display: none; }
         .view.active { display: block; }
         
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group.full { grid-column: span 2; }
-        label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #4a5568; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
-        input:focus, select:focus { border-color: #134e2b; outline: none; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: #334155; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; }
         
-        .btn-primary { background: #134e2b; color: white; padding: 12px 20px; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
-        .btn-primary:hover { background: #0e3b20; }
-        .btn-secondary { background: #0284c7; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn { background: var(--primary); color: white; padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn:hover { background: var(--primary-dark); }
+        .btn-full { width: 100%; margin-top: 10px; }
+        .btn-orange { background: #ea580c; }
+
+        .token-badge { background: #ecfdf5; border: 2px dashed #059669; padding: 15px; border-radius: 8px; text-align: center; margin: 15px 0; }
+        .token-badge h2 { color: #059669; font-size: 28px; }
+        .queue-box { background: #fff7ed; border: 1px solid #fed7aa; padding: 12px; border-radius: 6px; margin: 10px 0; font-size: 14px; }
         
-        /* Stepper Tracking */
-        .stepper { display: flex; justify-content: space-between; margin: 35px 0 20px; position: relative; }
-        .step { flex: 1; text-align: center; position: relative; font-size: 13px; font-weight: 500; }
-        .step .circle { width: 34px; height: 34px; border-radius: 50%; background: #cbd5e1; color: white; line-height: 34px; margin: 0 auto 10px; font-weight: bold; }
-        .step.done .circle { background: #16a34a; }
-        .step.active .circle { background: #ea580c; }
-        
-        /* Table Styles */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
-        th { background: #f8fafc; color: #475569; }
+        .stepper { display: flex; justify-content: space-between; margin: 25px 0; position: relative; }
+        .step { flex: 1; text-align: center; font-size: 12px; position: relative; font-weight: 500; }
+        .step .dot { width: 28px; height: 28px; border-radius: 50%; background: #cbd5e1; color: white; line-height: 28px; margin: 0 auto 6px; font-weight: bold; }
+        .step.done .dot { background: #16a34a; }
+        .step.active .dot { background: #ea580c; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+        th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+        th { background: #f1f5f9; color: #334155; }
+
+        .ai-btn { position: fixed; bottom: 20px; right: 20px; background: var(--accent); color: #000; border: none; padding: 12px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; }
+        .ai-box { position: fixed; bottom: 75px; right: 20px; width: 320px; background: white; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; z-index: 100; overflow: hidden; }
+        .ai-header { background: var(--primary); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .ai-body { height: 250px; padding: 12px; overflow-y: auto; font-size: 13px; background: #f8fafc; }
+        .ai-msg { margin-bottom: 8px; padding: 8px 12px; border-radius: 8px; max-width: 85%; }
+        .ai-msg.bot { background: #e2e8f0; color: #1e293b; }
+        .ai-msg.user { background: var(--primary); color: white; margin-left: auto; }
+        .ai-input { display: flex; border-top: 1px solid var(--border); }
+        .ai-input input { border: none; border-radius: 0; }
+        .ai-input button { border-radius: 0; background: var(--primary); color: white; border: none; padding: 0 15px; }
     </style>
 </head>
 <body>
 
+    <div class="top-bar">
+        <span>Govt. of India | MSP Procurement Portal</span>
+        <select class="lang-select" onchange="changeLanguage(this.value)">
+            <option value="en">English</option>
+            <option value="hi">हिन्दी (Hindi)</option>
+            <option value="pb">ਪੰਜਾਬੀ (Punjabi)</option>
+        </select>
+    </div>
+
     <div class="header">
-        <div class="header-left">
+        <div class="header-brand">
             <img src="modi.png" alt="PM Narendra Modi">
             <div>
-                <h1>PM Kisan Procurement & Tracking Portal</h1>
-                <p>Ministry of Agriculture & Farmers Welfare, Govt of India</p>
+                <h1 id="txt-title">PM Kisan Slot & Token Procurement Portal</h1>
+                <p id="txt-subtitle">Direct Mandi Selling & Transparent PFMS Payment System</p>
             </div>
         </div>
     </div>
 
     <div class="container">
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab(event, 'register')">Farmer Registration</button>
-            <button class="tab-btn" onclick="switchTab(event, 'login')">Farmer Login</button>
-            <button class="tab-btn" onclick="switchTab(event, 'admin')">Backend / District Portal</button>
+            <button class="tab-btn active" onclick="switchTab(event, 'signup')" id="t-signup">Farmer Sign Up</button>
+            <button class="tab-btn" onclick="switchTab(event, 'login')" id="t-login">Farmer Login</button>
+            <button class="tab-btn" onclick="switchTab(event, 'admin')" id="t-admin">District Mandi Officer</button>
+            <button class="tab-btn" onclick="switchTab(event, 'contact')" id="t-contact">Contact & Feedback</button>
         </div>
 
-        <!-- Registration View -->
-        <div id="register-view" class="view active">
-            <h3 style="margin-top:0;">Slot Booking & Sign Up</h3>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Farmer Name</label>
-                    <input type="text" id="reg-name" placeholder="Enter Full Name">
+        <!-- 1. FARMER SIGN UP -->
+        <div id="signup-view" class="view active">
+            <div class="card">
+                <h2 style="margin-bottom:15px;" id="lbl-signup-head">New Farmer Registration</h2>
+                <div class="grid">
+                    <div class="form-group"><label id="lbl-name">Farmer Full Name *</label><input type="text" id="su-name" placeholder="e.g. Ramesh Kumar"></div>
+                    <div class="form-group"><label id="lbl-mobile">Mobile Number *</label><input type="tel" id="su-mobile" placeholder="10-digit number"></div>
+                    <div class="form-group"><label id="lbl-aadhar">Aadhaar Number (Optional)</label><input type="text" id="su-aadhar" placeholder="12-digit number"></div>
+                    <div class="form-group"><label id="lbl-pass">Create Account Password *</label><input type="password" id="su-pwd" placeholder="Choose a password"></div>
                 </div>
-                <div class="form-group">
-                    <label>Mobile Number</label>
-                    <input type="text" id="reg-mobile" placeholder="10-digit number">
-                </div>
-                <div class="form-group">
-                    <label>Select Crop</label>
-                    <select id="reg-crop">
-                        <option value="Wheat">Wheat (₹25/kg)</option>
-                        <option value="Rice">Rice (₹32/kg)</option>
-                        <option value="Cotton">Cotton (₹65/kg)</option>
-                        <option value="Mustard">Mustard (₹55/kg)</option>
-                        <option value="Soybean">Soybean (₹48/kg)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Quantity (Kg)</label>
-                    <input type="number" id="reg-qty" placeholder="Total kg">
-                </div>
-                <div class="form-group">
-                    <label>Procurement Center</label>
-                    <select id="reg-center">
-                        <option value="District Mandi Center A">District Mandi Center A</option>
-                        <option value="District Mandi Center B">District Mandi Center B</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Slot Date</label>
-                    <input type="date" id="reg-date">
-                </div>
-                <div class="form-group full">
-                    <label>Set Password</label>
-                    <input type="password" id="reg-pwd" placeholder="Choose a secure password">
-                </div>
+                <button class="btn btn-full" onclick="registerFarmer()" id="btn-register">Register & Generate Reg ID</button>
             </div>
-            <button class="btn-primary" onclick="registerFarmer()">Register & Generate Registration Number</button>
         </div>
 
-        <!-- Login View -->
+        <!-- 2. FARMER LOGIN & DASHBOARD -->
         <div id="login-view" class="view">
-            <h3 style="margin-top:0;">Farmer Login</h3>
-            <div class="form-group">
-                <label>Registration Number</label>
-                <input type="text" id="login-reg" placeholder="e.g. REG-123456">
+            <div class="card" id="login-form-card">
+                <h2 style="margin-bottom:15px;" id="lbl-login-head">Farmer Sign In</h2>
+                <div class="grid">
+                    <div class="form-group"><label id="lbl-regno">Registration Number</label><input type="text" id="log-reg" placeholder="e.g. REG-123456"></div>
+                    <div class="form-group"><label id="lbl-logpass">Password</label><input type="password" id="log-pwd" placeholder="Enter your password"></div>
+                </div>
+                <button class="btn btn-full" onclick="loginFarmer()" id="btn-login">Login to Dashboard</button>
             </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="login-pwd" placeholder="Enter password">
-            </div>
-            <button class="btn-primary" onclick="loginFarmer()">Login to Dashboard</button>
 
-            <div id="farmer-dashboard" style="display:none; margin-top:30px; border-top: 2px solid #e2e8f0; padding-top:20px;">
-                <h3 id="dash-name" style="color:#134e2b; margin:0 0 10px;"></h3>
-                <p style="font-size:16px;"><strong>Calculated Payout:</strong> ₹<span id="dash-total"></span> (@ ₹<span id="dash-rate"></span>/kg)</p>
-                
-                <h4 style="margin-top:25px;">Live Payment Process Status</h4>
-                <div class="stepper">
-                    <div class="step" id="step-0"><div class="circle">1</div>District Nodal Officer Verification</div>
-                    <div class="step" id="step-1"><div class="circle">2</div>Ministry Verification</div>
-                    <div class="step" id="step-2"><div class="circle">3</div>Ministry to PFMS Transfer</div>
-                    <div class="step" id="step-3"><div class="circle">4</div>Money Transferred</div>
+            <!-- Farmer Active Dashboard -->
+            <div id="farmer-dash-panel" style="display:none;">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h2 id="dash-greeting" style="color:var(--primary);"></h2>
+                        <button class="btn btn-orange" onclick="logoutFarmer()">Logout</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Book Your Crop Selling Slot</h3>
+                    <div class="grid" style="margin-top:15px;">
+                        <div class="form-group">
+                            <label>Select Procurement Center</label>
+                            <select id="bk-center" onchange="checkAvailability()">
+                                <option value="District Mandi Center A">District Mandi Center A</option>
+                                <option value="District Mandi Center B">District Mandi Center B</option>
+                                <option value="District Mandi Center C">District Mandi Center C</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Exact Date</label>
+                            <input type="date" id="bk-date" onchange="checkAvailability()">
+                        </div>
+                        <div class="form-group">
+                            <label>Session</label>
+                            <select id="bk-session" onchange="checkAvailability()">
+                                <option value="Morning (09:00 AM - 01:00 PM)">Morning (09:00 AM - 01:00 PM)</option>
+                                <option value="Afternoon (02:00 PM - 06:00 PM)">Afternoon (02:00 PM - 06:00 PM)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Crop Type</label>
+                            <select id="bk-crop">
+                                <option value="Wheat">Wheat (₹25/kg)</option>
+                                <option value="Rice">Rice (₹32/kg)</option>
+                                <option value="Cotton">Cotton (₹65/kg)</option>
+                                <option value="Mustard">Mustard (₹55/kg)</option>
+                                <option value="Soybean">Soybean (₹48/kg)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Total Quantity (in Kg)</label>
+                            <input type="number" id="bk-qty" placeholder="e.g. 500">
+                        </div>
+                    </div>
+
+                    <div id="slot-status-box" class="queue-box">Please select a date to check availability.</div>
+                    <button class="btn btn-full" onclick="bookSlot()">Confirm Booking & Generate Mandi Token</button>
+                </div>
+
+                <div class="card">
+                    <h3>My Booked Slots & Live Mandi Status</h3>
+                    <div id="farmer-bookings-list"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Admin View -->
+        <!-- 3. ADMIN / DISTRICT OFFICER PANEL -->
         <div id="admin-view" class="view">
-            <h3 style="margin-top:0;">Backend Record Management</h3>
-            <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
-                <input type="text" id="filter-crop" placeholder="Filter by Crop" oninput="loadAdminData()" style="flex:1;">
-                <input type="text" id="filter-center" placeholder="Filter by Center" oninput="loadAdminData()" style="flex:1;">
-                <button class="btn-secondary" onclick="downloadExcel()">Export to Excel (.xlsx)</button>
+            <div class="card" id="admin-auth-card">
+                <h2>Officer Authentication</h2>
+                <div class="form-group" style="margin-top:10px;">
+                    <label>Enter Officer Security Key</label>
+                    <input type="password" id="adm-pwd" placeholder="Enter password (default: admin@kisan2026)">
+                </div>
+                <button class="btn" onclick="authAdmin()">Unlock Officer Panel</button>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Reg No</th>
-                        <th>Farmer Name</th>
-                        <th>Crop / Qty</th>
-                        <th>Total Price</th>
-                        <th>Status</th>
-                        <th>Update Stage</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-table-body"></tbody>
-            </table>
+
+            <div id="admin-panel" style="display:none;">
+                <div class="card">
+                    <h3>Center Capacity & Live Token Queue Manager</h3>
+                    <div class="grid" style="margin-top:15px;">
+                        <div class="form-group">
+                            <label>Center</label>
+                            <select id="adm-center">
+                                <option value="District Mandi Center A">District Mandi Center A</option>
+                                <option value="District Mandi Center B">District Mandi Center B</option>
+                                <option value="District Mandi Center C">District Mandi Center C</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Total Max Slots per Session</label>
+                            <input type="number" id="adm-cap" placeholder="e.g. 25">
+                            <button class="btn" style="margin-top:5px;" onclick="updateCapacity()">Update Capacity</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Current Token Progress (Now Serving)</label>
+                            <input type="number" id="adm-token-seq" placeholder="e.g. Token # 12">
+                            <button class="btn btn-orange" style="margin-top:5px;" onclick="updateTokenQueue()">Update Live Token</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <h3>Procurement & Payment Control</h3>
+                        <button class="btn" onclick="downloadExcel()">Export All to Excel (.xlsx)</button>
+                    </div>
+
+                    <div class="grid" style="margin-top:15px;">
+                        <input type="date" id="flt-date" onchange="loadAdminData()">
+                        <input type="text" id="flt-crop" placeholder="Filter by Crop" oninput="loadAdminData()">
+                        <input type="text" id="flt-center" placeholder="Filter by Center" oninput="loadAdminData()">
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Reg No / Farmer</th>
+                                    <th>Crop (Kg)</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Slot / Session</th>
+                                    <th>Payment Stage</th>
+                                    <th>Update Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. CONTACT & FEEDBACK -->
+        <div id="contact-view" class="view">
+            <div class="card">
+                <h2>Contact District Nodal Officers & Support</h2>
+                <p style="margin:8px 0 15px; font-size:14px;">Toll-Free Helpline: <strong>1800-180-1551</strong> | Email: <strong>support-kisan@gov.in</strong></p>
+                <div class="grid">
+                    <div class="form-group"><label>Your Name</label><input type="text" id="fb-name"></div>
+                    <div class="form-group"><label>Mobile Number</label><input type="text" id="fb-mobile"></div>
+                </div>
+                <div class="form-group"><label>Your Query / Feedback</label><textarea id="fb-msg" rows="3"></textarea></div>
+                <button class="btn" onclick="submitFeedback()">Send Message</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Widget -->
+    <button class="ai-btn" onclick="toggleAIChat()">🤖 Kisan AI Assistant</button>
+    <div class="ai-box" id="ai-box">
+        <div class="ai-header">
+            <span>Kisan Assistant AI</span>
+            <span style="cursor:pointer;" onclick="toggleAIChat()">✖</span>
+        </div>
+        <div class="ai-body" id="ai-body">
+            <div class="ai-msg bot">Namaste! How can I assist you with slot booking, token queue, or payment tracking?</div>
+        </div>
+        <div class="ai-input">
+            <input type="text" id="ai-input-text" placeholder="Type your query...">
+            <button onclick="sendAIQuery()">Send</button>
         </div>
     </div>
 
     <script>
+        let currentFarmer = null;
+
+        const I18N = {
+            en: {
+                title: "PM Kisan Slot & Token Procurement Portal",
+                subtitle: "Direct Mandi Selling & Transparent PFMS Payment System",
+                signup: "Farmer Sign Up",
+                login: "Farmer Login",
+                admin: "District Mandi Officer",
+                contact: "Contact & Feedback",
+                name: "Farmer Full Name *",
+                regBtn: "Register & Generate Reg ID"
+            },
+            hi: {
+                title: "पीएम किसान स्लॉट एवं टोकन खरीद पोर्टल",
+                subtitle: "मंडी में सीधी बिक्री एवं पारदर्शी पीएफएमएस भुगतान प्रणाली",
+                signup: "किसान पंजीकरण",
+                login: "किसान लॉगिन",
+                admin: "जिला मंडी अधिकारी",
+                contact: "संपर्क एवं सुझाव",
+                name: "किसान का पूरा नाम *",
+                regBtn: "पंजीकरण करें और आईडी प्राप्त करें"
+            },
+            pb: {
+                title: "ਪੀਐਮ ਕਿਸਾਨ ਸਲਾਟ ਅਤੇ ਟੋਕਨ ਖਰੀਦ ਪੋਰਟਲ",
+                subtitle: "ਸਿੱਧੀ ਮੰਡੀ ਵਿਕਰੀ ਅਤੇ ਪਾਰਦਰਸ਼ੀ ਪੀਐਫਐਮਐਸ ਭੁਗਤਾਨ ਪ੍ਰਣਾਲੀ",
+                signup: "ਕਿਸਾਨ ਰਜਿਸਟ੍ਰੇਸ਼ਨ",
+                login: "ਕਿਸਾਨ ਲੌਗਇਨ",
+                admin: "ਜ਼ਿਲ੍ਹਾ ਮੰਡੀ ਅਧਿਕਾਰੀ",
+                contact: "ਸੰਪਰਕ ਅਤੇ ਫੀਡਬੈਕ",
+                name: "ਕਿਸਾਨ ਦਾ ਪੂਰਾ ਨਾਮ *",
+                regBtn: "ਰਜਿਸਟਰ ਕਰੋ ਅਤੇ ਆਈਡੀ ਪ੍ਰਾਪਤ ਕਰੋ"
+            }
+        };
+
+        function changeLanguage(lang) {
+            const t = I18N[lang] || I18N.en;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('t-signup').innerText = t.signup;
+            document.getElementById('t-login').innerText = t.login;
+            document.getElementById('t-admin').innerText = t.admin;
+            document.getElementById('t-contact').innerText = t.contact;
+            document.getElementById('lbl-name').innerText = t.name;
+            document.getElementById('btn-register').innerText = t.regBtn;
+        }
+
         function switchTab(evt, viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(viewId + '-view').classList.add('active');
-            evt.currentTarget.classList.add('active');
-            if (viewId === 'admin') loadAdminData();
+            if (evt) evt.currentTarget.classList.add('active');
         }
 
         async function registerFarmer() {
-            const payload = {
-                name: document.getElementById('reg-name').value,
-                mobile: document.getElementById('reg-mobile').value,
-                crop: document.getElementById('reg-crop').value,
-                quantityKg: document.getElementById('reg-qty').value,
-                center: document.getElementById('reg-center').value,
-                slotDate: document.getElementById('reg-date').value,
-                password: document.getElementById('reg-pwd').value
-            };
+            const name = document.getElementById('su-name').value.trim();
+            const mobile = document.getElementById('su-mobile').value.trim();
+            const aadhar = document.getElementById('su-aadhar').value.trim();
+            const password = document.getElementById('su-pwd').value.trim();
 
-            const res = await fetch('/api/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert(`Registration Successful!\nYour Registration No is: ${data.regNo}`);
-            } else {
-                alert(data.error);
+            if (!name || !mobile || !password) {
+                return alert('Please fill in Name, Mobile Number, and Password.');
+            }
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, mobile, aadhar, password })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert(`Registration Successful!\n\nYour Registration ID is: ${data.regNo}\n\nPlease note this ID down. You will use it with your password to log in.`);
+                    document.getElementById('log-reg').value = data.regNo;
+                    document.getElementById('t-login').click();
+                } else {
+                    alert(data.error || 'Registration failed');
+                }
+            } catch (err) {
+                alert('Could not connect to server.');
             }
         }
 
         async function loginFarmer() {
-            const regNo = document.getElementById('login-reg').value;
-            const password = document.getElementById('login-pwd').value;
+            const regNo = document.getElementById('log-reg').value.trim();
+            const password = document.getElementById('log-pwd').value.trim();
 
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ regNo, password })
-            });
-            const data = await res.json();
-            if (data.success) {
-                const f = data.farmer;
-                document.getElementById('farmer-dashboard').style.display = 'block';
-                document.getElementById('dash-name').innerText = `Farmer: ${f.name} (Reg: ${f.regNo})`;
-                document.getElementById('dash-total').innerText = f.totalAmount;
-                document.getElementById('dash-rate').innerText = f.ratePerKg;
+            if (!regNo || !password) {
+                return alert('Please enter both Registration Number and Password.');
+            }
 
-                for (let i = 0; i <= 3; i++) {
-                    const stepEl = document.getElementById(`step-${i}`);
-                    stepEl.className = 'step';
-                    if (i < f.paymentStep) stepEl.classList.add('done');
-                    else if (i === f.paymentStep) stepEl.classList.add('active');
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ regNo, password })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    currentFarmer = data.farmer;
+                    document.getElementById('login-form-card').style.display = 'none';
+                    document.getElementById('farmer-dash-panel').style.display = 'block';
+                    document.getElementById('dash-greeting').innerText = `Welcome, ${currentFarmer.name} (${currentFarmer.regNo})`;
+                    
+                    const tmrw = new Date();
+                    tmrw.setDate(tmrw.getDate() + 1);
+                    document.getElementById('bk-date').value = tmrw.toISOString().split('T')[0];
+                    checkAvailability();
+                    renderFarmerBookings(data.bookings);
+                } else {
+                    alert(data.error || 'Invalid Credentials');
                 }
-            } else {
-                alert(data.error);
+            } catch (err) {
+                alert('Login request failed.');
+            }
+        }
+
+        function logoutFarmer() {
+            currentFarmer = null;
+            document.getElementById('login-form-card').style.display = 'block';
+            document.getElementById('farmer-dash-panel').style.display = 'none';
+        }
+
+        async function checkAvailability() {
+            const center = document.getElementById('bk-center').value;
+            const date = document.getElementById('bk-date').value;
+            const session = document.getElementById('bk-session').value;
+            if (!date) return;
+
+            try {
+                const res = await fetch(`/api/slots/availability?center=${encodeURIComponent(center)}&date=${date}&session=${encodeURIComponent(session)}`);
+                const data = await res.json();
+                
+                const box = document.getElementById('slot-status-box');
+                if (data.availableSlots > 0) {
+                    box.innerHTML = `🟢 <strong>${data.availableSlots} Slots Available</strong> out of ${data.maxCapacity} for this session.`;
+                    box.style.color = '#166534';
+                } else {
+                    box.innerHTML = `🔴 <strong>Session Full!</strong> 0 slots remaining. Please choose another date or session.`;
+                    box.style.color = '#991b1b';
+                }
+            } catch (e) {}
+        }
+
+        async function bookSlot() {
+            if (!currentFarmer) return alert('Please login first');
+            const crop = document.getElementById('bk-crop').value;
+            const quantityKg = document.getElementById('bk-qty').value;
+            const center = document.getElementById('bk-center').value;
+            const slotDate = document.getElementById('bk-date').value;
+            const session = document.getElementById('bk-session').value;
+
+            if (!quantityKg || Number(quantityKg) <= 0) {
+                return alert('Please enter a valid crop quantity in Kg.');
+            }
+
+            try {
+                const res = await fetch('/api/slots/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ regNo: currentFarmer.regNo, crop, quantityKg, center, slotDate, session })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert(`Slot Confirmed!\nYour Token Number is: ${data.booking.tokenNumber}`);
+                    const rel = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ regNo: currentFarmer.regNo, password: currentFarmer.password })
+                    });
+                    const reData = await rel.json();
+                    renderFarmerBookings(reData.bookings);
+                    checkAvailability();
+                } else {
+                    alert(data.error || 'Booking failed');
+                }
+            } catch (err) {
+                alert('Booking failed');
+            }
+        }
+
+        function renderFarmerBookings(bookingsList) {
+            const container = document.getElementById('farmer-bookings-list');
+            if (!bookingsList || bookingsList.length === 0) {
+                container.innerHTML = `<p style="color:#64748b; padding:10px 0;">No active bookings found.</p>`;
+                return;
+            }
+
+            container.innerHTML = bookingsList.map(b => `
+                <div style="border:1px solid #cbd5e1; border-radius:8px; padding:15px; margin-bottom:15px;">
+                    <div class="token-badge">
+                        <small>Mandi Queue Sequence Token</small>
+                        <h2>${b.tokenNumber}</h2>
+                        <small>Procurement Center: <strong>${b.center}</strong> | Date: <strong>${b.slotDate}</strong> (${b.session})</small>
+                    </div>
+
+                    <p><strong>Crop:</strong> ${b.crop} | <strong>Quantity:</strong> ${b.quantityKg} kg | <strong>Total Estimated Payout:</strong> ₹${b.totalAmount} (@ ₹${b.ratePerKg}/kg)</p>
+
+                    <h4 style="margin-top:15px;">Payment Pipeline Status:</h4>
+                    <div class="stepper">
+                        <div class="step ${b.paymentStep > 0 ? 'done' : b.paymentStep === 0 ? 'active' : ''}"><div class="dot">1</div>District Nodal Officer</div>
+                        <div class="step ${b.paymentStep > 1 ? 'done' : b.paymentStep === 1 ? 'active' : ''}"><div class="dot">2</div>Ministry Verification</div>
+                        <div class="step ${b.paymentStep > 2 ? 'done' : b.paymentStep === 2 ? 'active' : ''}"><div class="dot">3</div>PFMS Transfer</div>
+                        <div class="step ${b.paymentStep === 3 ? 'done' : ''}"><div class="dot">4</div>Money Transferred</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function authAdmin() {
+            const adminPassword = document.getElementById('adm-pwd').value.trim();
+            if (!adminPassword) return alert('Enter Admin Password');
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminPassword })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('admin-auth-card').style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'block';
+                    loadAdminData();
+                } else {
+                    alert(data.error || 'Incorrect Password');
+                }
+            } catch (err) {
+                alert('Connection to server failed.');
             }
         }
 
         async function loadAdminData() {
-            const crop = document.getElementById('filter-crop').value;
-            const center = document.getElementById('filter-center').value;
-            const res = await fetch(`/api/admin/records?crop=${encodeURIComponent(crop)}&center=${encodeURIComponent(center)}`);
+            const date = document.getElementById('flt-date').value;
+            const crop = document.getElementById('flt-crop').value;
+            const center = document.getElementById('flt-center').value;
+
+            const res = await fetch(`/api/admin/records?date=${date}&crop=${encodeURIComponent(crop)}&center=${encodeURIComponent(center)}`);
             const data = await res.json();
-            
+
             const tbody = document.getElementById('admin-table-body');
-            tbody.innerHTML = data.map(item => `
+            tbody.innerHTML = data.map(b => `
                 <tr>
-                    <td><strong>${item.regNo}</strong></td>
-                    <td>${item.name}</td>
-                    <td>${item.crop} (${item.quantityKg} kg)</td>
-                    <td>₹${item.totalAmount}</td>
-                    <td>${item.status}</td>
+                    <td><strong>${b.tokenNumber}</strong></td>
+                    <td>${b.farmerName} <br><small>${b.regNo}</small></td>
+                    <td>${b.crop} (${b.quantityKg} kg)</td>
+                    <td>₹${b.totalAmount}</td>
+                    <td>${b.slotDate}<br><small>${b.session}</small></td>
+                    <td>${b.status}</td>
                     <td>
-                        <select onchange="updatePayment('${item.regNo}', this.value)">
-                            <option value="0" ${item.paymentStep === 0 ? 'selected' : ''}>District Nodal</option>
-                            <option value="1" ${item.paymentStep === 1 ? 'selected' : ''}>Ministry Verif</option>
-                            <option value="2" ${item.paymentStep === 2 ? 'selected' : ''}>PFMS Transfer</option>
-                            <option value="3" ${item.paymentStep === 3 ? 'selected' : ''}>Money Transferred</option>
+                        <select onchange="updatePaymentStage('${b.bookingId}', this.value)">
+                            <option value="0" ${b.paymentStep === 0 ? 'selected' : ''}>1. District Nodal</option>
+                            <option value="1" ${b.paymentStep === 1 ? 'selected' : ''}>2. Ministry Verif</option>
+                            <option value="2" ${b.paymentStep === 2 ? 'selected' : ''}>3. PFMS Transfer</option>
+                            <option value="3" ${b.paymentStep === 3 ? 'selected' : ''}>4. Money Transferred</option>
                         </select>
                     </td>
                 </tr>
             `).join('');
         }
 
-        async function updatePayment(regNo, stepIndex) {
+        async function updatePaymentStage(bookingId, stepIndex) {
             await fetch('/api/admin/update-payment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ regNo, stepIndex })
+                body: JSON.stringify({ bookingId, stepIndex })
             });
             loadAdminData();
         }
 
+        async function updateCapacity() {
+            const center = document.getElementById('adm-center').value;
+            const capacity = document.getElementById('adm-cap').value;
+            await fetch('/api/admin/update-capacity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ center, capacity })
+            });
+            alert('Capacity updated');
+        }
+
+        async function updateTokenQueue() {
+            const center = document.getElementById('adm-center').value;
+            const currentTokenSeq = document.getElementById('adm-token-seq').value;
+            const date = document.getElementById('flt-date').value || new Date().toISOString().split('T')[0];
+            await fetch('/api/admin/update-token-progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ center, date, session: "Morning (09:00 AM - 01:00 PM)", currentTokenSeq })
+            });
+            alert(`Token progress updated to #${currentTokenSeq}`);
+        }
+
         function downloadExcel() {
             window.location.href = '/api/admin/export-excel';
+        }
+
+        async function submitFeedback() {
+            const payload = {
+                name: document.getElementById('fb-name').value,
+                mobile: document.getElementById('fb-mobile').value,
+                message: document.getElementById('fb-msg').value
+            };
+            const res = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+
+        function toggleAIChat() {
+            const box = document.getElementById('ai-box');
+            box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function sendAIQuery() {
+            const inp = document.getElementById('ai-input-text');
+            const txt = inp.value.trim();
+            if (!txt) return;
+
+            const body = document.getElementById('ai-body');
+            body.innerHTML += `<div class="ai-msg user">${txt}</div>`;
+            inp.value = '';
+
+            setTimeout(() => {
+                let reply = "You can book your slot under the 'Farmer Login' tab after registering. You will get an exact Token Number for mandi entry.";
+                const lower = txt.toLowerCase();
+                if (lower.includes('price') || lower.includes('rate') || lower.includes('msp')) {
+                    reply = "Government MSP rates: Wheat: ₹25/kg, Rice: ₹32/kg, Cotton: ₹65/kg, Mustard: ₹55/kg, Soybean: ₹48/kg.";
+                } else if (lower.includes('payment') || lower.includes('money') || lower.includes('pfms')) {
+                    reply = "Payments are directly sent to your bank via PFMS following District Nodal & Ministry verification.";
+                } else if (lower.includes('token') || lower.includes('slot')) {
+                    reply = "Select your Mandi center, pick any available date, and choose Morning/Afternoon session to get your instant Token Number.";
+                }
+                body.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
+                body.scrollTop = body.scrollHeight;
+            }, 500);
         }
     </script>
 </body>
