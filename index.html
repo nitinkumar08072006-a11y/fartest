@@ -3,91 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kisan Procurement Portal</title>
+    <title>PM Kisan Procurement Portal</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f6; color: #333; }
-        .header { background: #1b5e20; color: white; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
-        .header-title { display: flex; align-items: center; gap: 20px; }
-        .header img { width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; }
-        .container { max-width: 1000px; margin: 25px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
-        .tab-btn { padding: 10px 20px; border: none; background: none; font-weight: bold; cursor: pointer; }
-        .tab-btn.active { border-bottom: 3px solid #1b5e20; color: #1b5e20; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f6f8; color: #2d3748; }
+        .header { background: #134e2b; color: white; padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        .header img { width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 3px solid #ff9933; background: #fff; }
+        .header h1 { margin: 0; font-size: 22px; }
+        .header p { margin: 3px 0 0; font-size: 13px; color: #d1fae5; }
+        .container { max-width: 950px; margin: 30px auto; padding: 25px; background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        
+        .tabs { display: flex; gap: 15px; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; }
+        .tab-btn { padding: 12px 24px; border: none; background: none; font-size: 15px; font-weight: 600; color: #718096; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: #134e2b; border-color: #134e2b; }
+        
         .view { display: none; }
         .view.active { display: block; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button.action-btn { background: #1b5e20; color: white; padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; }
+        .form-group.full { grid-column: span 2; }
+        label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #4a5568; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        input:focus, select:focus { border-color: #134e2b; outline: none; }
         
-        /* Payment Tracker */
-        .stepper { display: flex; justify-content: space-between; margin: 30px 0; }
-        .step { flex: 1; text-align: center; position: relative; font-size: 12px; }
-        .step .circle { width: 30px; height: 30px; border-radius: 50%; background: #ccc; color: white; line-height: 30px; margin: 0 auto 8px; font-weight: bold; }
-        .step.done .circle { background: #2e7d32; }
-        .step.active .circle { background: #f57c00; }
+        .btn-primary { background: #134e2b; color: white; padding: 12px 20px; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-primary:hover { background: #0e3b20; }
+        .btn-secondary { background: #0284c7; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #f8f9fa; }
+        /* Stepper Tracking */
+        .stepper { display: flex; justify-content: space-between; margin: 35px 0 20px; position: relative; }
+        .step { flex: 1; text-align: center; position: relative; font-size: 13px; font-weight: 500; }
+        .step .circle { width: 34px; height: 34px; border-radius: 50%; background: #cbd5e1; color: white; line-height: 34px; margin: 0 auto 10px; font-weight: bold; }
+        .step.done .circle { background: #16a34a; }
+        .step.active .circle { background: #ea580c; }
+        
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+        th { background: #f8fafc; color: #475569; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="header-title">
+        <div class="header-left">
             <img src="modi.png" alt="PM Narendra Modi">
             <div>
-                <h2>PM Kisan Procurement & Tracking Portal</h2>
-                <small>Government of India</small>
+                <h1>PM Kisan Procurement & Tracking Portal</h1>
+                <p>Ministry of Agriculture & Farmers Welfare, Govt of India</p>
             </div>
         </div>
     </div>
 
     <div class="container">
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('register')">Farmer Sign Up</button>
-            <button class="tab-btn" onclick="switchTab('login')">Farmer Login</button>
-            <button class="tab-btn" onclick="switchTab('admin')">Admin / Backend Panel</button>
+            <button class="tab-btn active" onclick="switchTab(event, 'register')">Farmer Registration</button>
+            <button class="tab-btn" onclick="switchTab(event, 'login')">Farmer Login</button>
+            <button class="tab-btn" onclick="switchTab(event, 'admin')">Backend / District Portal</button>
         </div>
 
         <!-- Registration View -->
         <div id="register-view" class="view active">
-            <h3>Farmer Slot & Crop Registration</h3>
-            <div class="form-group"><label>Farmer Name</label><input type="text" id="reg-name"></div>
-            <div class="form-group"><label>Mobile</label><input type="text" id="reg-mobile"></div>
-            <div class="form-group"><label>Crop</label>
-                <select id="reg-crop">
-                    <option value="Wheat">Wheat (₹25/kg)</option>
-                    <option value="Rice">Rice (₹32/kg)</option>
-                    <option value="Cotton">Cotton (₹65/kg)</option>
-                    <option value="Mustard">Mustard (₹55/kg)</option>
-                </select>
+            <h3 style="margin-top:0;">Slot Booking & Sign Up</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Farmer Name</label>
+                    <input type="text" id="reg-name" placeholder="Enter Full Name">
+                </div>
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="text" id="reg-mobile" placeholder="10-digit number">
+                </div>
+                <div class="form-group">
+                    <label>Select Crop</label>
+                    <select id="reg-crop">
+                        <option value="Wheat">Wheat (₹25/kg)</option>
+                        <option value="Rice">Rice (₹32/kg)</option>
+                        <option value="Cotton">Cotton (₹65/kg)</option>
+                        <option value="Mustard">Mustard (₹55/kg)</option>
+                        <option value="Soybean">Soybean (₹48/kg)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity (Kg)</label>
+                    <input type="number" id="reg-qty" placeholder="Total kg">
+                </div>
+                <div class="form-group">
+                    <label>Procurement Center</label>
+                    <select id="reg-center">
+                        <option value="District Mandi Center A">District Mandi Center A</option>
+                        <option value="District Mandi Center B">District Mandi Center B</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Slot Date</label>
+                    <input type="date" id="reg-date">
+                </div>
+                <div class="form-group full">
+                    <label>Set Password</label>
+                    <input type="password" id="reg-pwd" placeholder="Choose a secure password">
+                </div>
             </div>
-            <div class="form-group"><label>Total Quantity (in Kg)</label><input type="number" id="reg-qty"></div>
-            <div class="form-group"><label>Procurement Center</label>
-                <select id="reg-center">
-                    <option value="North Mandi Center">North Mandi Center</option>
-                    <option value="South Mandi Center">South Mandi Center</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Slot Date</label><input type="date" id="reg-date"></div>
-            <div class="form-group"><label>Set Account Password</label><input type="password" id="reg-pwd"></div>
-            <button class="action-btn" onclick="registerFarmer()">Register & Generate Reg No</button>
+            <button class="btn-primary" onclick="registerFarmer()">Register & Generate Registration Number</button>
         </div>
 
         <!-- Login View -->
         <div id="login-view" class="view">
-            <h3>Farmer Sign In</h3>
-            <div class="form-group"><label>Registration Number</label><input type="text" id="login-reg"></div>
-            <div class="form-group"><label>Password</label><input type="password" id="login-pwd"></div>
-            <button class="action-btn" onclick="loginFarmer()">Sign In</button>
+            <h3 style="margin-top:0;">Farmer Login</h3>
+            <div class="form-group">
+                <label>Registration Number</label>
+                <input type="text" id="login-reg" placeholder="e.g. REG-123456">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-pwd" placeholder="Enter password">
+            </div>
+            <button class="btn-primary" onclick="loginFarmer()">Login to Dashboard</button>
 
-            <div id="farmer-dashboard" style="display:none; margin-top: 25px; border-top: 2px solid #ddd; padding-top: 15px;">
-                <h3 id="dash-name"></h3>
-                <p><strong>Total Estimated Payout:</strong> ₹<span id="dash-total"></span> (@ ₹<span id="dash-rate"></span>/kg)</p>
+            <div id="farmer-dashboard" style="display:none; margin-top:30px; border-top: 2px solid #e2e8f0; padding-top:20px;">
+                <h3 id="dash-name" style="color:#134e2b; margin:0 0 10px;"></h3>
+                <p style="font-size:16px;"><strong>Calculated Payout:</strong> ₹<span id="dash-total"></span> (@ ₹<span id="dash-rate"></span>/kg)</p>
                 
-                <h4>Live Payment Progress</h4>
+                <h4 style="margin-top:25px;">Live Payment Process Status</h4>
                 <div class="stepper">
                     <div class="step" id="step-0"><div class="circle">1</div>District Nodal Officer Verification</div>
                     <div class="step" id="step-1"><div class="circle">2</div>Ministry Verification</div>
@@ -99,20 +138,20 @@
 
         <!-- Admin View -->
         <div id="admin-view" class="view">
-            <h3>Backend Control & Excel View</h3>
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <input type="text" id="filter-crop" placeholder="Filter by Crop" oninput="loadAdminData()">
-                <input type="text" id="filter-center" placeholder="Filter by Center" oninput="loadAdminData()">
-                <button class="action-btn" onclick="downloadExcel()">Export to Excel</button>
+            <h3 style="margin-top:0;">Backend Record Management</h3>
+            <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                <input type="text" id="filter-crop" placeholder="Filter by Crop" oninput="loadAdminData()" style="flex:1;">
+                <input type="text" id="filter-center" placeholder="Filter by Center" oninput="loadAdminData()" style="flex:1;">
+                <button class="btn-secondary" onclick="downloadExcel()">Export to Excel (.xlsx)</button>
             </div>
             <table>
                 <thead>
                     <tr>
                         <th>Reg No</th>
-                        <th>Name</th>
+                        <th>Farmer Name</th>
                         <th>Crop / Qty</th>
                         <th>Total Price</th>
-                        <th>Payment Status</th>
+                        <th>Status</th>
                         <th>Update Stage</th>
                     </tr>
                 </thead>
@@ -122,11 +161,11 @@
     </div>
 
     <script>
-        function switchTab(viewId) {
+        function switchTab(evt, viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(viewId + '-view').classList.add('active');
-            event.target.classList.add('active');
+            evt.currentTarget.classList.add('active');
             if (viewId === 'admin') loadAdminData();
         }
 
@@ -140,6 +179,7 @@
                 slotDate: document.getElementById('reg-date').value,
                 password: document.getElementById('reg-pwd').value
             };
+
             const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -147,7 +187,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert(`Registration complete!\nYour Reg Number: ${data.regNo}`);
+                alert(`Registration Successful!\nYour Registration No is: ${data.regNo}`);
             } else {
                 alert(data.error);
             }
@@ -166,7 +206,7 @@
             if (data.success) {
                 const f = data.farmer;
                 document.getElementById('farmer-dashboard').style.display = 'block';
-                document.getElementById('dash-name').innerText = `Welcome, ${f.name} (${f.regNo})`;
+                document.getElementById('dash-name').innerText = `Farmer: ${f.name} (Reg: ${f.regNo})`;
                 document.getElementById('dash-total').innerText = f.totalAmount;
                 document.getElementById('dash-rate').innerText = f.ratePerKg;
 
@@ -184,13 +224,13 @@
         async function loadAdminData() {
             const crop = document.getElementById('filter-crop').value;
             const center = document.getElementById('filter-center').value;
-            const res = await fetch(`/api/admin/records?crop=${crop}&center=${center}`);
+            const res = await fetch(`/api/admin/records?crop=${encodeURIComponent(crop)}&center=${encodeURIComponent(center)}`);
             const data = await res.json();
             
             const tbody = document.getElementById('admin-table-body');
             tbody.innerHTML = data.map(item => `
                 <tr>
-                    <td>${item.regNo}</td>
+                    <td><strong>${item.regNo}</strong></td>
                     <td>${item.name}</td>
                     <td>${item.crop} (${item.quantityKg} kg)</td>
                     <td>₹${item.totalAmount}</td>
