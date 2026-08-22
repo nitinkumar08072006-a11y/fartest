@@ -1,12 +1,19 @@
 const express = require('express');
 const path = require('path');
+const cors = require('cors');
 const XLSX = require('xlsx');
 
 const app = express();
+
+// Middleware
+app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from the 'ux' folder
 app.use(express.static(path.join(__dirname, 'ux')));
 
-// Fixed price per kg managed by backend
+// Fixed price per kg configuration
 const PRICE_CONFIG = {
     "Wheat": 25,
     "Rice": 32,
@@ -15,10 +22,7 @@ const PRICE_CONFIG = {
     "Soybean": 48
 };
 
-// In-memory data store
-let farmers = [];
-let slotsData = [];
-
+// Payment pipeline stages
 const PAYMENT_STAGES = [
     "Verification from District Nodal Officer",
     "Verification from Ministry",
@@ -26,119 +30,136 @@ const PAYMENT_STAGES = [
     "Money Transferred"
 ];
 
-// Helper to generate Registration Number
+// In-memory data storage
+let farmers = [];
+let slotsData = [];
+
 function generateRegNo() {
     return 'REG-' + Math.floor(100000 + Math.random() * 900000);
 }
 
 // 1. Farmer Registration
 app.post('/api/register', (req, res) => {
-    const { name, mobile, crop, quantityKg, center, slotDate, password } = req.body;
-    
-    if (!name || !password || !crop || !quantityKg) {
-        return res.status(400).json({ error: 'All mandatory fields are required' });
+    try {
+        const { name, mobile, crop, quantityKg, center, slotDate, password } = req.body;
+        
+        if (!name || !password || !crop || !quantityKg) {
+            return res.status(400).json({ error: 'All mandatory fields are required' });
+        }
+
+        const regNo = generateRegNo();
+        const ratePerKg = PRICE_CONFIG[crop] || 20;
+        const totalAmount = ratePerKg * Number(quantityKg);
+
+        const newFarmer = {
+            regNo,
+            password,
+            name,
+            mobile,
+            crop,
+            quantityKg: Number(quantityKg),
+            ratePerKg,
+            totalAmount,
+            center: center || 'Center A',
+            slotDate: slotDate || new Date().toISOString().split('T')[0],
+            paymentStep: 0,
+            status: PAYMENT_STAGES[0]
+        };
+
+        farmers.push(newFarmer);
+        slotsData.push(newFarmer);
+
+        res.json({
+            success: true,
+            regNo,
+            message: 'Registration successful!'
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    const regNo = generateRegNo();
-    const ratePerKg = PRICE_CONFIG[crop] || 20;
-    const totalAmount = ratePerKg * Number(quantityKg);
-
-    const newFarmer = {
-        regNo,
-        password,
-        name,
-        mobile,
-        crop,
-        quantityKg: Number(quantityKg),
-        ratePerKg,
-        totalAmount,
-        center: center || 'Center A',
-        slotDate: slotDate || new Date().toISOString().split('T')[0],
-        paymentStep: 0, // 0 to 3
-        status: PAYMENT_STAGES[0]
-    };
-
-    farmers.push(newFarmer);
-    slotsData.push(newFarmer);
-
-    res.json({
-        success: true,
-        regNo,
-        message: 'Registration successful! Use your Reg No and Password to login.'
-    });
 });
 
 // 2. Farmer Login
 app.post('/api/login', (req, res) => {
-    const { regNo, password } = req.body;
-    const farmer = farmers.find(f => f.regNo === regNo && f.password === password);
-    
-    if (!farmer) {
-        return res.status(401).json({ error: 'Invalid Registration Number or Password' });
+    try {
+        const { regNo, password } = req.body;
+        const farmer = farmers.find(f => f.regNo === regNo && f.password === password);
+        
+        if (!farmer) {
+            return res.status(401).json({ error: 'Invalid Registration Number or Password' });
+        }
+
+        res.json({ success: true, farmer });
+    } catch (err) {
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    res.json({ success: true, farmer });
 });
 
-// 3. Fetch Farmer Dashboard Details
-app.get('/api/farmer/:regNo', (req, res) => {
-    const farmer = farmers.find(f => f.regNo === req.params.regNo);
-    if (!farmer) return res.status(404).json({ error: 'Farmer not found' });
-    res.json(farmer);
-});
-
-// 4. Admin: Get all slots with filters
+// 3. Admin: Fetch Filtered Records
 app.get('/api/admin/records', (req, res) => {
     const { slotDate, crop, center } = req.query;
     let filtered = [...slotsData];
 
     if (slotDate) filtered = filtered.filter(f => f.slotDate === slotDate);
-    if (crop) filtered = filtered.filter(f => f.crop.toLowerCase() === crop.toLowerCase());
-    if (center) filtered = filtered.filter(f => f.center.toLowerCase() === center.toLowerCase());
+    if (crop) filtered = filtered.filter(f => f.crop.toLowerCase().includes(crop.toLowerCase()));
+    if (center) filtered = filtered.filter(f => f.center.toLowerCase().includes(center.toLowerCase()));
 
     res.json(filtered);
 });
 
-// 5. Admin: Update Payment Step
+// 4. Admin: Update Payment Step
 app.post('/api/admin/update-payment', (req, res) => {
     const { regNo, stepIndex } = req.body;
     const farmer = farmers.find(f => f.regNo === regNo);
     
     if (!farmer) return res.status(404).json({ error: 'Farmer not found' });
-    if (stepIndex < 0 || stepIndex >= PAYMENT_STAGES.length) {
-        return res.status(400).json({ error: 'Invalid step' });
+    const idx = Number(stepIndex);
+    if (idx < 0 || idx >= PAYMENT_STAGES.length) {
+        return res.status(400).json({ error: 'Invalid stage index' });
     }
 
-    farmer.paymentStep = Number(stepIndex);
-    farmer.status = PAYMENT_STAGES[stepIndex];
+    farmer.paymentStep = idx;
+    farmer.status = PAYMENT_STAGES[idx];
 
-    res.json({ success: true, message: 'Payment status updated', currentStatus: farmer.status });
+    res.json({ success: true, message: 'Status updated', currentStatus: farmer.status });
 });
 
-// 6. Admin: Download Excel file
+// 5. Admin: Export Data to Excel
 app.get('/api/admin/export-excel', (req, res) => {
-    const exportData = slotsData.map(item => ({
-        "Reg No": item.regNo,
-        "Farmer Name": item.name,
-        "Mobile": item.mobile,
-        "Crop": item.crop,
-        "Quantity (Kg)": item.quantityKg,
-        "Rate/Kg (INR)": item.ratePerKg,
-        "Total Amount (INR)": item.totalAmount,
-        "Procurement Center": item.center,
-        "Slot Date": item.slotDate,
-        "Payment Status": item.status
-    }));
+    try {
+        const exportData = slotsData.map(item => ({
+            "Registration No": item.regNo,
+            "Farmer Name": item.name,
+            "Mobile Number": item.mobile,
+            "Crop Type": item.crop,
+            "Quantity (Kg)": item.quantityKg,
+            "Rate per Kg (₹)": item.ratePerKg,
+            "Total Payout (₹)": item.totalAmount,
+            "Procurement Center": item.center,
+            "Slot Date": item.slotDate,
+            "Payment Status": item.status
+        }));
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Farmer_Slots");
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Farmer_Records");
 
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    res.setHeader('Content-Disposition', 'attachment; filename="Farmer_Slots_Report.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(buffer);
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        res.setHeader('Content-Disposition', 'attachment; filename="Farmer_Slots_Report.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (err) {
+        res.status(500).send('Error generating Excel file');
+    }
 });
 
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// Default fallback to index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'ux', 'index.html'));
+});
+
+// Dynamic port configuration for Render
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
