@@ -1,7 +1,7 @@
 {
   "name": "farmer-portal",
   "version": "1.0.0",
-  "description": "Farmer Procurement and Payment Tracking Portal",
+  "description": "PM Kisan Slot Booking and Payment Tracking Portal",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
